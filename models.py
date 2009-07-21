@@ -44,7 +44,7 @@ class Photo(ImageModel):
         cache_dir = ''
         image_field = 'image'
         save_count_as = 'num_views'
-        cache_filename_format = ".cache/%(specname)s/%(filename)s.%(extension)s"
+        cache_filename_format = ".glcache/%(specname)s/%(filename)s.%(extension)s"
     #preprocessor = Preprocess
 
     EXIF_ORIENTATION_STEPS = {

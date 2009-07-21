@@ -11,6 +11,11 @@ def make_private(modeladmin, queryset):
     queryset.update(is_public=False)
 make_private.short_description = 'Make selected private'
 
+def deleteme(modeladmin, queryset):
+    for obj in queryset:
+        obj.delete()
+deleteme.short_description = "Properly delete objects"
+
 def precache(modeladmin, queryset):
     for obj in queryset:
         if isinstance(obj, Photo):
@@ -45,6 +50,7 @@ class PhotoAdmin(admin.ModelAdmin):
     #prepopulated_fields = {'title_slug': ('title',)}
     #filter_horizontal = ('public_galleries',)
 
+admin.site.add_action(deleteme)
 admin.site.add_action(make_public)
 admin.site.add_action(make_private)
 admin.site.add_action(precache)

@@ -22,13 +22,13 @@ def folderFromPath(path):
     return folder
      
 def folderparse(request, path):
-    return render_to_response('galleria/folder_detail.html', {'folder':folderFromPath(path)})
+    return render_to_response('galleria/folder_detail.html', {'folder':folderFromPath(path), 'authenticated':authenticated})
 
 def photoparse(request, path, photo):
     folder = folderFromPath(path)
     try:
         p = folder.photo_children.get(slug=photo)
-        return render_to_response('galleria/photo_detail.html', {'photo':p})
+        return render_to_response('galleria/photo_detail.html', {'photo':p, 'authenticated':authenticated})
     except Photo.DoesNotExist:
         raise Http404
 
@@ -37,6 +37,7 @@ def galleryRoot(request):
     public = not authenticated
     return render_to_response('galleria/gallery_root.html', {'folders':Folder.objects.filter(parent=None, is_public__in=[True, public]),
                                                               'photos':Photo.objects.filter(parent=None, is_public__in=[True, public]),
+                                                              'authenticated':authenticated,
                                                               })
 def urlparse(request, path=None):
     #(path, im) = os.path.split(gallery)

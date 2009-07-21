@@ -8,7 +8,7 @@
     {% for folder in folders %}
     <div class="photo-gallery">
         <h2>{% textlink folder %}</h2>
-        {% for photo in folder.samplegallery %}
+        {% for photo in folder|publicfilter:authenticated %}
         <div class="gallery-photo">{% thumbnail photo %}</div>
         {% endfor %}
         <div class="clear"><br /></div>

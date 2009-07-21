@@ -43,3 +43,9 @@ def previous_n_in_gallery(photo, gallery, n):
     out.reverse()
     return out
 
+@register.filter
+def publicfilter(gallery, isAuthenticated=False):
+    return gallery.samplegallery(public=not isAuthenticated)
+
+
+

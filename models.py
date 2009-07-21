@@ -80,7 +80,7 @@ class Photo(ImageModel):
         if rotate and orientation > 1:
             print "Autorotating %s from orientation %i"%(uploadName, orientation)
             #subprocess.call('convert -auto-orient "%s" "%s"'%(filename, filename), shell=True)
-            subprocess.call('exifautotran %'%filename, shell=True)
+            subprocess.call('exifautotran %s'%filename, shell=True)
             
         s = open(filename, 'rb')
         if symlink:
@@ -261,8 +261,8 @@ class Gallery(models.Model):
         else:
             return self.photos.all()[:limit]
 
-    def samplegallery(self):
-        return self.sample(count=SAMPLE_SIZE)
+    def samplegallery(self, public=True):
+        return self.sample(count=SAMPLE_SIZE, public=public)
 
     def sample(self, count=0, public=True):
         maxcount = self.photo_count(public=public)

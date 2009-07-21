@@ -28,7 +28,7 @@ class GalleryAdmin(admin.ModelAdmin):
     #filter_horizontal = ('photos',)
 
 class FolderAdmin(admin.ModelAdmin):
-    list_display = ('admin_thumb', 'foldername', 'title', 'date_added', 'photo_count', 'is_public')
+    list_display = ('foldername', 'admin_thumb', 'title', 'date_added', 'photo_count', 'is_public')
     list_filter = ['parent', 'date_added', 'is_public']
     search_fields = ['title', 'description', 'foldername']
     date_hierarchy = 'date_added'

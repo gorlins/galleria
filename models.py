@@ -79,7 +79,8 @@ class Photo(ImageModel):
 
         if rotate and orientation > 1:
             print "Autorotating %s from orientation %i"%(uploadName, orientation)
-            subprocess.call('convert -auto-orient "%s" "%s"'%(filename, filename), shell=True)
+            #subprocess.call('convert -auto-orient "%s" "%s"'%(filename, filename), shell=True)
+            subprocess.call('exifautotran %'%filename, shell=True)
             
         s = open(filename, 'rb')
         if symlink:

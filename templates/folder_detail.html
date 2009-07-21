@@ -1,0 +1,34 @@
+{% extends "galleria/root.html" %}
+
+{% load galleria_tags %}
+
+{% block title %}{{ folder.title }}{% endblock %}
+
+{% block content %}
+
+<h1><a href="http://django.scottgorlin.com/gallery">Photos</a>  &rsaquo; {% for parent in folder.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ folder.title }}</h1>
+<h2>Begins on {{ folder.date_beginning|date:"l, F jS, Y" }}</h2>
+{% if folder.description %}<p>{{ folder.description }}</p>{% endif %}
+    {% for child in folder.folder_children.all %}
+    {% if authenticated or child.is_public %}
+    <div class="photo-gallery">
+        <h2>{% textlink child %}</h2>
+        {% for photo in child.samplegallery %}
+        <div class="gallery-photo">{% thumbnail photo %}</div>
+        {% endfor %}
+        <div class="clear"><br /></div>
+    </div>
+    {% endif %}
+    {% endfor %}
+<div class="clear"><br /></div>
+{% if folder.photo_count %}
+<div class="photo-gallery">
+    <div>
+    {% for photo in folder.public %}<div class="gallery-photo">{% thumbnail photo %}</div>{% endfor %}
+    </div>
+    <br class="clear" />
+</div>
+<br class="clear" />	
+{% endif %}
+
+{% endblock %}

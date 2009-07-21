@@ -1,0 +1,27 @@
+{% extends "galleria/root.html" %}
+
+{% load galleria_tags %}
+
+{% block title %}Public Galleries{% endblock %}
+
+{% block content %}
+    {% for folder in folders %}
+    <div class="photo-gallery">
+        <h2>{% textlink folder %}</h2>
+        {% for photo in folder.samplegallery %}
+        <div class="gallery-photo">{% thumbnail photo %}</div>
+        {% endfor %}
+        <div class="clear"><br /></div>
+    </div>
+    {% endfor %}
+<div class="clear"><br /></div>
+{% if photos.count %}
+<div class="photo-gallery">
+    <div>
+    {% for photo in photos %}<div class="gallery-photo">{% thumbnail photo %}</div>{% endfor %}
+    </div>
+    <br class="clear" />
+</div>
+<br class="clear" />	
+{% endif %}
+{% endblock %}

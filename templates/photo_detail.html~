@@ -1,0 +1,24 @@
+{% extends "photologue/root.html" %}
+
+{% load photologue_tags %}
+
+{% block title %}{{ object.title }}{% endblock %}
+
+{% block content %}
+
+<h1>{%gallery_tree_list object%}</h1>
+<div align="center">
+    <a href="{{ object.image.url }}"><img src="{{ object.get_display_url }}" alt="{{ object.title }}"/></a>
+    {% if object.caption %}<p>{{ object.caption }}</p>{% endif %}
+</div>
+<div class="clear">
+<br class="clear">
+</div>
+
+{% if object.parentGallery %}
+<td style="vertical-algin:top; display:inline"><tr>
+{% gallery_nav object %}
+</tr></td>
+{% endif %}
+
+{% endblock %}

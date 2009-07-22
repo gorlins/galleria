@@ -5,8 +5,8 @@
 {% block title %}{{ folder.title }}{% endblock %}
 
 {% block content %}
-
-<h1><a href="http://django.scottgorlin.com/gallery">Photos</a>  &rsaquo; {% for parent in folder.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ folder.title }}</h1>
+{% if authenticated or folder.is_public %}
+<h1><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in folder.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ folder.title }}</h1>
 <h2>Begins on {{ folder.date_beginning|date:"l, F jS, Y" }}</h2>
 {% if folder.description %}<p>{{ folder.description }}</p>{% endif %}
     {% for child in folder.folder_children.all %}
@@ -30,5 +30,7 @@
 </div>
 <br class="clear" />	
 {% endif %}
-
+{% else %}
+Folder is private!
+{% endif %}
 {% endblock %}

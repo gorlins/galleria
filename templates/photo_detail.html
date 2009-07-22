@@ -5,8 +5,8 @@
 {% block title %}{{ photo.title }}{% endblock %}
 
 {% block content %}
-
-<h1><a href="http://django.scottgorlin.com/gallery">Photos</a>  &rsaquo; {% for parent in photo.ancestry %}{% textlink parent %} &rsaquo; {% endfor %} {{ photo.title }}</h1>
+{% if authenticated or photo.publicAncestry %}
+<h1><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in photo.ancestry %}{% textlink parent %} &rsaquo; {% endfor %} {{ photo.title }}</h1>
 <div align="center">
     <div style="width:600px; height:400px; margin:10px"><a href="{{ photo.image.url }}"><img border=1px src="{{ photo.display.url }}" alt="{{ photo.title }}"/></a></div>
     <div style="margin:5px; clear:both;">{{ photo.printcaption }} <i>{{ photo.date_taken|date:"l, F jS, Y" }}</i></div>
@@ -18,5 +18,7 @@
 <td align="left" width=325px>{% for p in photo.get_next_n %}{% smallthumb p %}{% endfor %}</td>
 </tr></table>
 </div>
-
+{% else %}
+Private photo!
+{% endif %}
 {% endblock %}

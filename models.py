@@ -200,6 +200,13 @@ class Photo(ImageModel):
         self.reloadExif(resave=False)
         ImageModel.save(self, *args, **kwargs)
 
+    @property
+    def publicAncestry(self):
+        """Returns True if self and all parents are public"""
+        objs = self.ancestry()
+        objs.append(self)
+        return all([obj.is_public for obj in objs])
+
     def relpath(self):
         """The relative directory of this photo, given it's parent
         Safely handles case of no parent

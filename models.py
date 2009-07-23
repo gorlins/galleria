@@ -366,7 +366,7 @@ class Folder(Gallery):
             f.writelines(['Allow from %s\n'%ip for ip in PRIVATE_IPS if (not ip is None or ip=='')])
             f.write('Satisfy Any\n')
         else:
-            f.writelines(['<Files "%s">Deny from all</Files>/n'%p.title for p in self.photo_children.filter(is_public=False)])
+            f.writelines(['<Files "%s">\nDeny from all\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
         f.close()
     def folderpath(self, includeSelf=True):
         return os.path.join(*[f.foldername for f in self.ancestry(includeSelf=includeSelf)])

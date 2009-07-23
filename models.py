@@ -338,6 +338,10 @@ class Folder(Gallery):
         folder = os.path.join(settings.MEDIA_ROOT, uploadFolder(self, ''))
         Gallery.delete(self)
         try:
+            os.remove(os.path.join(folder, '.htaccess'))
+        except OSError:
+            pass
+        try:
             shutil.rmtree(folder)
         except OSError:
             pass
@@ -371,6 +375,9 @@ class Folder(Gallery):
     def abspath(self):
         return os.path.join(settings.MEDIA_ROOT, GALLERIA_ROOT, self.folderpath())
     def save(self, *args, **kwargs):
+        me = self.abspath()
+        if not os.path.isdir(me):
+            os.makedirs(me)
         self.htaccess()
         Gallery.save(self, *args, **kwargs)
 

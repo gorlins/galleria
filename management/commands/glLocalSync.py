@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
 from galleria.models import *
 import os
+from datetime import datetime
 from django.template.defaultfilters import slugify
 from django.core.files.base import ContentFile
 from django.core.files import File
@@ -35,6 +36,7 @@ skipped = 0
 added = 0
 excluded=0
 found = 0
+modified = 0
 from time import time
 t = 0
 orphaned = {}
@@ -45,6 +47,7 @@ def walkFolders(localdir, parent):
     global added
     global excluded
     global found
+    global modified
 
     (path, foldername) = os.path.split(localdir)
     cachedir = os.path.join(localdir, CACHE_SUBDIR)
@@ -101,15 +104,17 @@ def walkFolders(localdir, parent):
             try:
                 photo = childPhotos.get(slug=slug)
                 found += 1
+                stat = os.stat(thisf)
+                atime = datetime.fromtimestamp(stat.st_atime)
+                if atime > photo.date_added:
+                    print '~', photo.folderpath(), photo.title
+                    modified+=1
+                    photo.date_added=atime
+                    if not os.path.islink(thisf):
+                        photo.image.save(photo.title, ContentFile(open(thisf).read()), save=False)
+                    photo.save(clear_cache=True)
+
             except Photo.DoesNotExist:
-                #photo = Photo(title=f, slug=slug, parent=parent)
-                #print 'sdf'
-                #if COPY_ALL:
-                #    photo.image.save(f, ContentFile(open(thisf, 'rb').read()))
-                #    pass
-                #else:
-                #    pass
-                #
                 photo = Photo.create(thisf, uploadName=f, title=f, parent=parent, slug=slug, preCache=PRECACHE_NEW)
                 print '+', photo.folderpath(), photo.title
                 added+=1
@@ -140,6 +145,7 @@ def main():
     t = time()-t
     print "Localsync completed successfully from %s"%LOCAL_ROOT
     print "Added %i and found %i current photos"%(added, found)
+    print "Updated %i modified photos"%modified
     print "Excluded %i dirs and images"%skipped
     print "took %s seconds"%t
     

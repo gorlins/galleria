@@ -5,11 +5,20 @@ from django.contrib import admin
 from models import *
 
 def make_public(modeladmin, queryset):
-    queryset.update(is_public=True)
+    for obj in queryset:
+        obj.is_public=True
+        obj.save()
 make_public.short_description = 'Make selected public'
 def make_private(modeladmin, queryset):
-    queryset.update(is_public=False)
+    for obj in queryset:
+        obj.is_public=False
+        obj.save()
 make_private.short_description = 'Make selected private'
+
+def resave(modeladmin, queryset):
+    for obj in queryset:
+        obj.save()
+resave.short_description = "Resave all"
 
 def deleteme(modeladmin, queryset):
     for obj in queryset:
@@ -53,6 +62,7 @@ class PhotoAdmin(admin.ModelAdmin):
 admin.site.add_action(deleteme)
 admin.site.add_action(make_public)
 admin.site.add_action(make_private)
+admin.site.add_action(resave)
 admin.site.add_action(precache)
 #admin.site.register(Gallery, GalleryAdmin)
 admin.site.register(Folder, FolderAdmin)

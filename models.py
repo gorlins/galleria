@@ -14,10 +14,11 @@ from galleria.specs import Preprocess
 from django.core.files.base import ContentFile, File
 from StringIO import StringIO
 import subprocess
+import operator
 
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
-
+PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
 def uploadFolder(photo, filename):
     return os.path.join(GALLERIA_ROOT, photo.folderpath(), filename)
 
@@ -198,6 +199,8 @@ class Photo(ImageModel):
 
     def save(self, *args, **kwargs):
         self.reloadExif(resave=False)
+        if not 'clear_cache' in kwargs:
+            kwargs['clear_cache']=False # alters default
         ImageModel.save(self, *args, **kwargs)
 
     @property
@@ -206,6 +209,10 @@ class Photo(ImageModel):
         objs = self.ancestry()
         objs.append(self)
         return all([obj.is_public for obj in objs])
+  
+
+    def abspath(self):
+        return self.image.file
 
     def relpath(self):
         """The relative directory of this photo, given it's parent
@@ -345,13 +352,27 @@ class Folder(Gallery):
 
     def public_galleries(self):
         return self.folder_children.filter(is_public=True)
-
+    def htaccess(self):
+        global PRIVATE_IPS
+        f = open(os.path.join(self.abspath(), '.htaccess'), 'w')
+        if not self.is_public:
+            f.write('Order Deny,Allow\nDeny from all\n')
+            if not operator.isSequenceType(PRIVATE_IPS):
+                PRIVATE_IPS = [PRIVATE_IPS]
+            f.writelines(['Allow from %s\n'%ip for ip in PRIVATE_IPS if (not ip is None or ip=='')])
+            f.write('Satisfy Any\n')
+        else:
+            f.writelines(['<Files "%s">Deny from all</Files>/n'%p.title for p in self.photo_children.filter(is_public=False)])
+        f.close()
     def folderpath(self, includeSelf=True):
         return os.path.join(*[f.foldername for f in self.ancestry(includeSelf=includeSelf)])
     def relpath(self, includeSelf=True):
         return os.path.join(*[f.slug for f in self.ancestry(includeSelf=includeSelf)])
-
-
+    def abspath(self):
+        return os.path.join(settings.MEDIA_ROOT, GALLERIA_ROOT, self.folderpath())
+    def save(self, *args, **kwargs):
+        self.htaccess()
+        Gallery.save(self, *args, **kwargs)
 
 #class Collection(Gallery):
 #    """Arbitrary collection of photos"""

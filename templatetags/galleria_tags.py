@@ -6,12 +6,12 @@ register = template.Library()
 
 @register.simple_tag
 def thumbnail(im):
-    return '<a title="%s" href="%s"><img alt="%s" src="%s"/></a>' % (im.title, im.get_absolute_url(), im.title, im.thumbnail.url)
+    return '<a title="%s" href="%s"><img src="%s" width=%dpx height=%dpx/></a>' % (im.title, im.get_absolute_url(), im.thumbnail.url, im.thumbnail.width, im.thumbnail.height)
 
 
 @register.simple_tag
 def smallthumb(im):
-    return '<a title="%s" href="%s"><img alt="%s" src="%s"/></a>' % (im.title, im.get_absolute_url(), im.title, im.smallthumb.url)
+    return '<a title="%s" href="%s"><img src="%s" width=%dpx height=%dpx/></a>' % (im.title, im.get_absolute_url(), im.smallthumb.url, im.smallthumb.width, im.smallthumb.height)
     
 @register.simple_tag
 def textlink(folder):

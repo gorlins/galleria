@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.defaults import *
 from galleria.models import *
-from galleria import folderparse, photoparse, urlparse, galleryRoot
+from galleria import photoparse, urlparse, galleryRoot
 
 # Number of random images from the gallery to display.
 SAMPLE_SIZE = ":%s" % getattr(settings, 'GALLERY_SAMPLE_SIZE', 5)

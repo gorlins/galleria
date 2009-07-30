@@ -380,6 +380,10 @@ class Folder(Gallery):
             os.makedirs(me)
         self.htaccess()
         Gallery.save(self, *args, **kwargs)
+    @property
+    def publicAncestry(self):
+        """Returns True if self and all parents are public"""
+        return all([f.is_public for f in self.ancestry(includeSelf=True)])
 
 #class Collection(Gallery):
 #    """Arbitrary collection of photos"""

@@ -6,8 +6,8 @@
 
 {% block content %}
 {% if authenticated or folder.is_public %}
-<h1><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in folder.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ folder.title }}</h1>
-<h2>Begins on {{ folder.date_beginning|date:"l, F jS, Y" }}</h2>
+<h2><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in folder.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ folder.title }}</h2>
+<p align='right'><i>Begins on {{ folder.date_beginning|date:"l, F jS, Y" }}</i></p>
 {% if folder.description %}<p>{{ folder.description }}</p>{% endif %}
     {% for child in folder.folder_children.all %}
     {% if authenticated or child.is_public %}
@@ -16,11 +16,11 @@
         {% for photo in child|publicfilter:authenticated %}
         <div class="gallery-photo">{% thumbnail photo %}</div>
         {% endfor %}
-        <div class="clear"><br /></div>
+        <div class="clear"><br class="clear"/></div>
     </div>
     {% endif %}
     {% endfor %}
-<div class="clear"><br /></div>
+<div class="clear"><br class="clear"/></div>
 {% if folder.photo_count %}
 <div class="photo-gallery">
     <div>

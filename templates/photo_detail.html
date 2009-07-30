@@ -6,9 +6,9 @@
 
 {% block content %}
 {% if authenticated or photo.publicAncestry %}
-<h1><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in photo.ancestry %}{% textlink parent %} &rsaquo; {% endfor %} {{ photo.title }}</h1>
+<h2><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in photo.ancestry %}{% textlink parent %} &rsaquo; {% endfor %} {{ photo.title }}</h2>
 <div align="center">
-    <div style="width:600px; height:400px; margin:10px"><a href="{{ photo.image.url }}"><img border=1px src="{{ photo.display.url }}" alt="{{ photo.title }}"/></a></div>
+    <div style="width:600px; height:400px; margin:10px"><a href="{{ photo.image.url }}"><img border=1px src="{{ photo.display.url }}"/></a></div>
     <div style="margin:5px; clear:both;">{{ photo.printcaption }} <i>{{ photo.date_taken|date:"l, F jS, Y" }}</i></div>
 </div>
 <div align="center">

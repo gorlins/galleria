@@ -9,17 +9,19 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 # Renderers
-def renderGallery(request, gallery=None, children=None, photos=None):
+def renderGallery(request, gallery=None, children=None, childrenFilter={}, photos=None, photosFilter={}):
     if gallery is None and children is None and photos is None:
         return galleryRoot(request)
     staff=request.user.is_staff
-    if gallery and children is None:
-        children = gallery.gallery_children.all()
-    if gallery and photos is None:
-        photos = gallery.photo_children.all()
     if not staff:
-        photos = photos.filter(is_public=True)
-        children = children.filter(is_public=True)
+        childrenFilter['is_public']=True
+        photosFilter['is_public']=True
+    if gallery and children is None:
+        children = gallery.gallery_children
+    if gallery and photos is None:
+        photos = gallery.photo_children
+    photos = photos.filter(**photosFilter).select_related('parent')
+    children = children.filter(**childrenFilter).select_related('photo_children', 'parent')
     if staff or gallery is None or gallery.publicAncestry:
         for c in children:
             c.pickSamples(count=SAMPLE_SIZE, public= not staff)
@@ -35,7 +37,7 @@ def renderPhoto(request, photo):
 
 # Parsers
 def galleryRoot(request):
-    return renderGallery(request, children=Folder.objects.filter(parent=None), photos=Photo.objects.filter(parent=None))
+    return renderGallery(request, children=Folder.objects.filter(parent=None).select_related('photo_children'), photos=Photo.objects.filter(parent=None).select_related()
 
 def folderparse(request, path):
     return renderGallery(request,folderFromPath(path))

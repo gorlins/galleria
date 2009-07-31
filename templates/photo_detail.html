@@ -10,11 +10,13 @@
     <div style="width:600px; height:400px; margin:10px"><a href="{{ photo.image.url }}"><img border=1px src="{{ photo.display.url }}"/></a></div>
     <div style="margin:5px; clear:both;">{{ photo.printcaption }} <i>{{ photo.date_taken|date:"l, F jS, Y" }}</i>{% if staff %} | <a href="/admin/galleria/photo/{{ photo.id }}/">Admin</a>{% endif %}</div>
 </div>
-<div align="center">
+<div id="thumbnav" align="center">
 <table><tr>
-<td align="right" style="text-align:right;" width=325px>{% for p in photo.get_previous_n %}{% smallthumb p %}{% endfor %}</td>
-<td align="center" style="text-align:center;" width=140px><div width=100%><span style="font-size:xx-large; font-weight:bold;">&lsaquo; {% smallthumb photo %} &rsaquo;</span></div></td>
-<td align="left" width=325px>{% for p in photo.get_next_n %}{% smallthumb p %}{% endfor %}</td>
+<td width="50%" style="text-align:right">{% for p in prevn %}{% smallthumb p %}{% endfor %}</td>
+<td style="text-align:center"><a href="{{ prev.get_absolute_url }}">&lsaquo;</a></td>
+<td style="text-align:center">{% smallthumb photo %}</td>
+<td style="text-align:center"><a href="{{ next.get_absolute_url }}">&rsaquo;</a></td>
+<td width="50%" style="text-align:left">{% for p in nextn %}{% smallthumb p %}{% endfor %}</td>
 </tr></table>
 </div>
 {% endblock %}

@@ -114,26 +114,17 @@ class Photo(ImageModel):
             return self.title
         return self.caption
 
-    def get_next_n(self, n=4, **kwargs):
-        out = []
-        next = self
-        for i in range(n):
-            next=next.get_next(**kwargs)
-            if next is None:
-                break
-            out.append(next)
-        return out
+    def get_next_n(self, n=4, public=True, field='date_taken'):
+        filt={(field+'__gt'):getattr(self, field)}
+        if public: filt['is_public']=True
+        return self.parent.photo_children.filter(**filt).order_by(field)[:n]
 
-    def get_previous_n(self, n=4, **kwargs):
-        out = []
-        prev = self
-        for i in range(n):
-            prev=prev.get_previous(**kwargs)
-            if prev is None:
-                break
-            out.append(prev)
-        out.reverse()
-        return out
+    def get_previous_n(self, n=4, public=True, field='date_taken'):
+        filt={(field+'__lt'):getattr(self, field)}
+        if public: filt['is_public']=True
+        ps = self.parent.photo_children.filter(**filt).order_by(field)
+        count = ps.count()
+        return ps[max(0, count-n):count]
 
     def get_next(self, public=True):
         try:
@@ -332,6 +323,7 @@ class Folder(Gallery):
     class Meta:
         verbose_name = _('folder')
         verbose_name_plural = _('folders')
+
     def get_absolute_url(self):
         return reverse('gl-gallery', kwargs={'path':self.relpath()})
 
@@ -393,6 +385,32 @@ class Folder(Gallery):
     def publicAncestry(self):
         """Returns True if self and all parents are public"""
         return all([f.is_public for f in self.ancestry(includeSelf=True)])
+
+class AutoCollection(Gallery):
+    queryfield = models.CharField(null=False, blank=False, default='date_taken', verbose_name=_('Field name used to query photos and galleries'))
+    ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
+    number = models.IntegerField(blank=False, null=False, default=100, verbose_name=_('Maximum number of photos to show (0 means all)'))
+    galleryNumber = models.IntegerField(blank=False, null=False, default=6, verbose_name=_('Maximum number of galleries to show (0 means all)'))
+    includeGalleries = models.BooleanField(default=False, verbose_name=_('Include galleries in this collection?'))
+
+    class Meta:
+        ordering = ['title']
+
+    @propery
+    def order_by(self):
+        return self.ordering+self.queryfield
+
+    @property
+    def photo_children(self):
+        return Photo.objects.order_by(self.order_by)
+
+    @property
+    def folder_children(self):
+        return Folder.objects.order_by(self.order_by)
+
+    @property
+    def gallery_children(self):
+        return self.folder_children
 
 #class Collection(Gallery):
 #    """Arbitrary collection of photos"""

@@ -8,6 +8,7 @@ from galleria.models import *
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
+
 # Renderers
 def renderGallery(request, gallery=None, children=None, childrenFilter={}, photos=None, photosFilter={}):
     if gallery is None and children is None and photos is None:
@@ -20,8 +21,8 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
         children = gallery.gallery_children
     if gallery and photos is None:
         photos = gallery.photo_children
-    photos = photos.filter(**photosFilter).select_related('parent')
-    children = children.filter(**childrenFilter).select_related('photo_children', 'parent')
+    photos = photos.filter(**photosFilter).select_related()
+    children = children.filter(**childrenFilter).select_related()
     if staff or gallery is None or gallery.publicAncestry:
         for c in children:
             c.pickSamples(count=SAMPLE_SIZE, public= not staff)
@@ -31,16 +32,22 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
 def renderPhoto(request, photo):
     staff=request.user.is_staff
     if staff or photo.publicAncestry:
-        return render_to_response('galleria/photo_detail.html', {'photo':photo, 'staff':staff, 'request':request})
+        prevn = photo.get_previous_n(public=not staff)
+        nextn = photo.get_next_n(public = not staff)
+        if nextn: next = nextn[0]
+        else: next = None
+        if prevn: prev = prevn[prevn.count()-1]
+        else: prev = None
+        return render_to_response('galleria/photo_detail.html', {'photo':photo, 'staff':staff, 'request':request, 'next':next, 'prev':prev, 'nextn':nextn, 'prevn':prevn})
     raise Http404
 
 
 # Parsers
 def galleryRoot(request):
-    return renderGallery(request, children=Folder.objects.filter(parent=None).select_related('photo_children'), photos=Photo.objects.filter(parent=None).select_related()
+    return renderGallery(request, children=Folder.objects, childrenFilter={'parent':None}, photos=Photo.objects, photosFilter={'parent':None})
 
 def folderparse(request, path):
-    return renderGallery(request,folderFromPath(path))
+    return renderGallery(request,gallery=folderFromPath(path))
     
 def photoparse(request, path, photo):
     try:
@@ -53,7 +60,7 @@ def urlparse(request, path=None):
     if path == '':
         return galleryRoot(request)
     pathlist = path.split('/')
-    children = Folder.objects.filter(parent=None)
+    children = Folder.objects.filter(parent=None).select_related()
     pathlist.reverse()
     folder = None
     
@@ -74,7 +81,7 @@ def urlparse(request, path=None):
                 except Photo.DoesNotExist:
                     raise Http404
             raise Http404
-    return renderGallery(request, folder)
+    return renderGallery(request, gallery=folder)
 
 
 # Utilities

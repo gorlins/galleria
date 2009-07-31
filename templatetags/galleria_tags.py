@@ -4,14 +4,21 @@ from django.template.defaultfilters import slugify
 
 register = template.Library()
 
+def thumbstr(im, thumb):
+    return '<a title="%s" href="%s"><img src="%s" width=%dpx height=%dpx/></a>' % (im.title, im.get_absolute_url(), thumb.url, thumb.width, thumb.height)
+
 @register.simple_tag
 def thumbnail(im):
-    return '<a title="%s" href="%s"><img src="%s" width=%dpx height=%dpx/></a>' % (im.title, im.get_absolute_url(), im.thumbnail.url, im.thumbnail.width, im.thumbnail.height)
+    if im.is_public: thumb = im.thumbnail
+    else: thumb = im.privatethumbnail
+    return thumbstr(im, thumb)
 
 
 @register.simple_tag
 def smallthumb(im):
-    return '<a title="%s" href="%s"><img src="%s" width=%dpx height=%dpx/></a>' % (im.title, im.get_absolute_url(), im.smallthumb.url, im.smallthumb.width, im.smallthumb.height)
+    if im.is_public: thumb = im.smallthumb
+    else: thumb = im.privatesmallthumb
+    return thumbstr(im, thumb)
     
 @register.simple_tag
 def textlink(folder):

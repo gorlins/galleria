@@ -137,12 +137,15 @@ class Photo(ImageModel):
 
     def get_next(self, public=True):
         try:
-            return self.get_next_by_date_taken(parent=self.parent, is_public__in=[public, True])
+            if public: return self.get_next_by_date_taken(parent=self.parent, is_public=True)
+            else: return self.get_next_by_date_taken(parent=self.parent)
         except Photo.DoesNotExist:
             return None
+
     def get_previous(self, public=True):
         try:
-            return self.get_previous_by_date_taken(parent=self.parent, is_public__in=[public, True])
+            if public: return self.get_previous_by_date_taken(parent=self.parent, is_public=True)
+            else: return self.get_previous_by_date_taken(parent=self.parent)
         except Photo.DoesNotExist:
             return None
 
@@ -278,22 +281,28 @@ class Gallery(models.Model):
     def samplegallery(self, public=True):
         return self.sample(count=SAMPLE_SIZE, public=public)
 
+    def pickSamples(self, count=0, public=True, force=False):
+        self.samples = self.sample(count=count, public=public) 
+
     def sample(self, count=0, public=True):
-        maxcount = self.photo_count(public=public)
-        if count == 0:
-            count = maxcount
-        if count <= maxcount:
-            photo_set = self.photo_children.filter(is_public__in=[True,public])
-        else:
-            import operator
-            fset = [f for f in self.gallery_children.filter(is_public__in=[True,public])]
-            fset.append(self)
-            photo_set = reduce(operator.or_, [f.photo_children.filter(is_public__in=[True,public]) for f in fset])
-        return random.sample(photo_set, min(count, photo_set.count()))
+        photo_set = self.photo_children.all()
+        if public: photo_set = photo_set.filter(is_public=True)
+
+        mycount = photo_set.count()
+
+        if count > mycount or mycount==0:
+            children = self.gallery_children.all()
+            if public: children = children.filter(is_public=True)
+            photo_set = reduce(operator.or_, [photo_set]+[g.photo_children.all() for g in children])
+            if public: photo_set = photo_set.filter(is_public=True)
+        if count==0: pick = photo_set.count()
+        else: pick = count
+        return photo_set.order_by('-num_views')[:pick]
 
     def photo_count(self, public=True):
-        return self.photo_children.filter(is_public__in=[public, True]).count()
-    
+        p = self.photo_children.all()
+        if public: p = p.filter(is_public=True)
+        return p.count()
     photo_count.short_description = _('count')
 	
     def public(self):

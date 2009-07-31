@@ -51,6 +51,8 @@ class ResizeDisplay(processors.Resize):
 class EnchanceThumb(processors.Adjustment): 
     contrast = 1.2
     sharpness = 1.1 
+class Gray(processors.Adjustment):
+    color = 0.
 
 class Preprocess(ImageSpec):
     quality=90
@@ -61,12 +63,20 @@ class SmallThumb(ImageSpec):
     processors = [ResizeSmallThumb]
     quality = 90
 
+class PrivateSmallThumb(ImageSpec):
+    pre_cache=False
+    processors = [ResizeSmallThumb, Gray]
+
 # now we can define our thumbnail spec
 class Thumbnail(ImageSpec): 
     access_as = 'thumbnail' 
     pre_cache = True 
     processors = [ResizeThumb] 
     quality = 90
+
+class PrivateThumbnail(ImageSpec):
+    pre_cache = False
+    processors = [ResizeThumb, Gray]
 
 # and our display spec
 class Display(ImageSpec):

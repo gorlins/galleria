@@ -5,20 +5,16 @@
 {% block title %}{{ photo.title }}{% endblock %}
 
 {% block content %}
-{% if authenticated or photo.publicAncestry %}
 <h2><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in photo.ancestry %}{% textlink parent %} &rsaquo; {% endfor %} {{ photo.title }}</h2>
 <div align="center">
     <div style="width:600px; height:400px; margin:10px"><a href="{{ photo.image.url }}"><img border=1px src="{{ photo.display.url }}"/></a></div>
-    <div style="margin:5px; clear:both;">{{ photo.printcaption }} <i>{{ photo.date_taken|date:"l, F jS, Y" }}</i></div>
+    <div style="margin:5px; clear:both;">{{ photo.printcaption }} <i>{{ photo.date_taken|date:"l, F jS, Y" }}</i>{% if staff %} | <a href="/admin/galleria/photo/{{ photo.id }}/">Admin</a>{% endif %}</div>
 </div>
 <div align="center">
 <table><tr>
-<td align="right" width=325px>{% for p in photo.get_previous_n %}{% smallthumb p %}{% endfor %}</td>
-<td align="center" width=140px><div width=100%><span style="font-size:xx-large; font-weight:bold;"> &lsaquo; {% smallthumb photo %} &rsaquo;</span></div></td>
+<td align="right" style="text-align:right;" width=325px>{% for p in photo.get_previous_n %}{% smallthumb p %}{% endfor %}</td>
+<td align="center" style="text-align:center;" width=140px><div width=100%><span style="font-size:xx-large; font-weight:bold;">&lsaquo; {% smallthumb photo %} &rsaquo;</span></div></td>
 <td align="left" width=325px>{% for p in photo.get_next_n %}{% smallthumb p %}{% endfor %}</td>
 </tr></table>
 </div>
-{% else %}
-Private photo!
-{% endif %}
 {% endblock %}

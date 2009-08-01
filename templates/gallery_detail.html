@@ -1,0 +1,30 @@
+{% extends "galleria/root.html" %}
+
+{% load galleria_tags %}
+
+{% block title %}{{ gallery.title }}{% endblock %}
+
+{% block content %}
+{% if gallery %}<h2><a href="{% url gl-galleryRoot %}">Photos</a>  &rsaquo; {% for parent in gallery.ancestry %}{% textlink parent %} &rsaquo; {% endfor %}{{ gallery.title }}</h2>
+<p align='right'><i>Begins on {{ gallery.date_beginning|date:"l, F jS, Y" }}</i>{% if staff %} | <a href='/admin/galleria/folder/{{ gallery.id }}/'>Admin</a>{% endif %}</p>
+{% if gallery.description %}<p>{{ gallery.description }}</p>{% endif %}{% endif %}
+    {% for child in children %}
+    <div class="photo-gallery">
+        <h2>{% textlink child %}</h2>
+        {% for photo in child.samples %}
+        <div class="gallery-photo">{% thumbnail photo %}</div>
+        {% endfor %}
+        <div class="clear"><br class="clear"/></div>
+    </div>
+    {% endfor %}
+<div class="clear"><br class="clear"/></div>
+{% if photos.count %}
+<div class="photo-gallery">
+    <div>
+    {% for photo in photos %}<div class="gallery-photo">{% thumbnail photo %}</div>{% endfor %}
+    </div>
+    <br class="clear" />
+</div>
+<br class="clear" />	
+{% endif %}
+{% endblock %}

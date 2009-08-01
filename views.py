@@ -8,21 +8,26 @@ from galleria.models import *
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
-
+from django.db.models.query import QuerySet
+from django.db.models.manager import Manager
 # Renderers
 def renderGallery(request, gallery=None, children=None, childrenFilter={}, photos=None, photosFilter={}):
+    """Renders a gallery, subgalleries, and/or photos"""
+
     if gallery is None and children is None and photos is None:
         return galleryRoot(request)
+
+    if photos is None:
+        if gallery: photos = gallery.photo_children
+        else: photos = []
+    if children is None:
+        if gallery: children = gallery.gallery_children
+        else: gallery = []
+
+    if isinstance(photos, QuerySet) or isinstance(photos, Manager): photos = filterquery(request, photos, **photosFilter).select_related()
+    if isinstance(children, QuerySet) or isinstance(children, Manager): children = filterquery(request, children, **childrenFilter).select_related()
+
     staff=request.user.is_staff
-    if not staff:
-        childrenFilter['is_public']=True
-        photosFilter['is_public']=True
-    if gallery and children is None:
-        children = gallery.gallery_children
-    if gallery and photos is None:
-        photos = gallery.photo_children
-    photos = photos.filter(**photosFilter).select_related()
-    children = children.filter(**childrenFilter).select_related()
     if staff or gallery is None or gallery.publicAncestry:
         for c in children:
             c.pickSamples(count=SAMPLE_SIZE, public= not staff)
@@ -44,7 +49,7 @@ def renderPhoto(request, photo):
 
 # Parsers
 def galleryRoot(request):
-    return renderGallery(request, children=Folder.objects, childrenFilter={'parent':None}, photos=Photo.objects, photosFilter={'parent':None})
+    return renderGallery(request, children=list(filterquery(request, AutoCollection.objects)) + list(filterquery(request, Folder.objects, parent=None)), photos=Photo.objects, photosFilter={'parent':None})
 
 def folderparse(request, path):
     return renderGallery(request,gallery=folderFromPath(path))
@@ -60,6 +65,11 @@ def urlparse(request, path=None):
     if path == '':
         return galleryRoot(request)
     pathlist = path.split('/')
+    if len(pathlist)==1:
+        try:
+            return renderGallery(request, gallery=AutoCollection.objects.get(slug=pathlist[0]))
+        except AutoCollection.DoesNotExist:
+            pass
     children = Folder.objects.filter(parent=None).select_related()
     pathlist.reverse()
     folder = None
@@ -85,6 +95,11 @@ def urlparse(request, path=None):
 
 
 # Utilities
+def filterquery(request, query, **filt):
+    """Handles default (and any custom) filtering on a QuerySet"""
+    if not request.user.is_staff: filt['is_public']=True
+    return query.filter(**filt)
+
 def folderFromPath(path):
     pathlist = path.split('/')
     folder = None

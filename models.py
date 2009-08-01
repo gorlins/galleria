@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile, File
 from StringIO import StringIO
 import subprocess
 import operator
+from django.db.models import F
 
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
@@ -34,7 +35,7 @@ class Photo(ImageModel):
     is_public = models.BooleanField(_('is public'), default=True, help_text=_('Public photographs will be displayed in the default views.'))
 
     class Meta:
-        ordering = ['date_taken']
+        ordering = ['date_taken', 'slug']
         get_latest_by = '-date_taken'
         verbose_name = _('photograph')
         verbose_name_plural = _('photographs')
@@ -115,14 +116,14 @@ class Photo(ImageModel):
         return self.caption
 
     def get_next_n(self, n=4, public=True, field='date_taken'):
-        filt={(field+'__gt'):getattr(self, field)}
+        filt={(field+'__gte'):getattr(self, field), 'slug__gt':self.slug}
         if public: filt['is_public']=True
-        return self.parent.photo_children.filter(**filt).order_by(field)[:n]
+        return self.parent.photo_children.filter(**filt).order_by(field, 'slug')[:n]
 
     def get_previous_n(self, n=4, public=True, field='date_taken'):
-        filt={(field+'__lt'):getattr(self, field)}
+        filt={(field+'__lte'):getattr(self, field), 'slug__lt':self.slug}
         if public: filt['is_public']=True
-        ps = self.parent.photo_children.filter(**filt).order_by(field)
+        ps = self.parent.photo_children.filter(**filt).order_by(field, 'slug')
         count = ps.count()
         return ps[max(0, count-n):count]
 
@@ -387,30 +388,56 @@ class Folder(Gallery):
         return all([f.is_public for f in self.ancestry(includeSelf=True)])
 
 class AutoCollection(Gallery):
-    queryfield = models.CharField(null=False, blank=False, default='date_taken', verbose_name=_('Field name used to query photos and galleries'))
-    ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
+    queryfield = models.CharField(null=False, blank=False, default='date_taken', max_length=50, verbose_name=_('Field name used to query photos and galleries'))
+    ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), max_length=1, default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
     number = models.IntegerField(blank=False, null=False, default=100, verbose_name=_('Maximum number of photos to show (0 means all)'))
-    galleryNumber = models.IntegerField(blank=False, null=False, default=6, verbose_name=_('Maximum number of galleries to show (0 means all)'))
+    galleryNumber = models.IntegerField(blank=False, null=False, default=6, verbose_name=_('Maximum number of galleries to show (0 means all) [unused]'))
     includeGalleries = models.BooleanField(default=False, verbose_name=_('Include galleries in this collection?'))
 
     class Meta:
         ordering = ['title']
 
-    @propery
+    def __getquery(self, query, **filt):
+        if str(self.queryfield)=='date_taken': query = query.exclude(date_taken__gte=F('date_added')) # Ignores invalid date_taken EXIF
+
+        q = query.filter(**filt).order_by(self.order_by)
+
+        if self.number==0: n = q.count()-1
+        else: n = min(self.number, q.count()-1)
+        cutoff = getattr(q[n], self.queryfield)
+        if self.ordering == '': ranger = str(self.queryfield) + '__lt'
+        else: ranger = str(self.queryfield) + '__gt'
+        filt[ranger]=cutoff
+        return query.filter(**filt).order_by(self.order_by)
+
+    @property
     def order_by(self):
         return self.ordering+self.queryfield
 
     @property
     def photo_children(self):
-        return Photo.objects.order_by(self.order_by)
+        return self.__getquery(Photo.objects)
 
     @property
     def folder_children(self):
-        return Folder.objects.order_by(self.order_by)
+        if self.includeGalleries:
+            return self.__getquery(Folder.objects)
+        return Folder.objects.none()
+
+    @property 
+    def publicAncestry(self):
+        return self.is_public
 
     @property
     def gallery_children(self):
         return self.folder_children
+
+    def sample(self, count=0, public=True):
+        if count==0: count = self.photo_children.all().count()
+        filt ={}
+        if public: filt['is_public']=True; filt['parent__is_public']=True;
+        return self.__getquery(Photo.objects, **filt)[:count]
+
 
 #class Collection(Gallery):
 #    """Arbitrary collection of photos"""

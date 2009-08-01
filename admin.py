@@ -48,6 +48,13 @@ class FolderAdmin(admin.ModelAdmin):
     date_hierarchy = 'date_added'
     prepopulated_fields = {'slug': ('foldername',)}
 
+class AutoCollectionAdmin(admin.ModelAdmin):
+    list_display = ('title', 'admin_thumb', 'date_added', 'is_public')
+    list_filter = ['date_added', 'is_public']
+    search_fields = ['title', 'description', 'queryfield']
+    date_hierarchy = 'date_added'
+    prepopulated_fields = {'slug': ('title',)}
+
 
 class PhotoAdmin(admin.ModelAdmin):
     #list_display = ('title', 'date_taken', 'date_added', 'is_public', 'tags', 'view_count', 'admin_thumbnail')
@@ -66,6 +73,7 @@ admin.site.add_action(resave)
 admin.site.add_action(precache)
 #admin.site.register(Gallery, GalleryAdmin)
 admin.site.register(Folder, FolderAdmin)
+admin.site.register(AutoCollection, AutoCollectionAdmin)
 #admin.site.register(GalleryUpload)
 admin.site.register(Photo, PhotoAdmin)
 #admin.site.register(PhotoEffect, PhotoEffectAdmin)

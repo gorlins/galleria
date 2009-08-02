@@ -34,7 +34,7 @@ class RestrictedManager(models.Manager):
         accesss to objects based on user"""
         if not user.is_staff:
             filt['is_public']=True
-            self._filterparent:
+            if self._filterparent:
                 filt['parent__is_public']=True
         return models.Manager(self).get_query_set(**filt)
 

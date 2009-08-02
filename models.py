@@ -36,7 +36,7 @@ class RestrictedManager(models.Manager):
             filt['is_public']=True
             if self._filterparent:
                 filt['parent__is_public']=True
-        return models.Manager(self).get_query_set(**filt)
+        return models.Manager.get_query_set(self).filter(**filt)
 
 # Models
 class Photo(ImageModel):

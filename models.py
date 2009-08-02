@@ -280,7 +280,7 @@ class Gallery(models.Model):
     def get_absolute_url(self):
         return reverse('gl-gallery', args=[self.slug])
 
-    def pickSamples(self, count=0, user=user, force=False):
+    def pickSamples(self, count=0, user=None, force=False):
         self.samples = self.sample(count=count, user=user) 
 
     def sample(self, count=0, user=None):

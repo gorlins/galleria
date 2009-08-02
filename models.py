@@ -20,9 +20,25 @@ from django.db.models import F
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
+
+# Utilities
 def uploadFolder(photo, filename):
     return os.path.join(GALLERIA_ROOT, photo.folderpath(), filename)
 
+class RestrictedManager(models.Manager):
+    def __init__(self, filterParent=False, **kwargs):
+        self._filterparent=filterParent
+        models.Manager.__init__(self, **kwargs)
+    def getRestricted(self, user, **filt):
+        """Handles default (and any custom) filtering on a QuerySet, restricting
+        accesss to objects based on user"""
+        if not user.is_staff:
+            filt['is_public']=True
+            self._filterparent:
+                filt['parent__is_public']=True
+        return models.Manager(self).get_query_set(**filt)
+
+# Models
 class Photo(ImageModel):
     title = models.CharField(max_length=100)
     slug = models.SlugField(_('title slug'), max_length=60, help_text=_('A "slug" is a URL-friendly title for an object.'))
@@ -34,6 +50,8 @@ class Photo(ImageModel):
     parent = models.ForeignKey('Folder', related_name="photo_children", blank=True, null=True)
     is_public = models.BooleanField(_('is public'), default=True, help_text=_('Public photographs will be displayed in the default views.'))
 
+    objects = RestrictedManager(filterParent=True)
+    
     class Meta:
         ordering = ['date_taken', 'slug']
         get_latest_by = '-date_taken'
@@ -115,30 +133,28 @@ class Photo(ImageModel):
             return self.title
         return self.caption
 
-    def get_next_n(self, n=4, public=True, field='date_taken'):
+    def get_next_n(self, n=4, user=None, field='date_taken'):
         filt={(field+'__gte'):getattr(self, field), 'slug__gt':self.slug}
-        if public: filt['is_public']=True
-        return self.parent.photo_children.filter(**filt).order_by(field, 'slug')[:n]
+        return self.parent.photo_children.getRestricted(user, **filt).order_by(field, 'slug')[:n]
 
-    def get_previous_n(self, n=4, public=True, field='date_taken'):
+    def get_previous_n(self, n=4, user=None, field='date_taken'):
         filt={(field+'__lte'):getattr(self, field), 'slug__lt':self.slug}
-        if public: filt['is_public']=True
-        ps = self.parent.photo_children.filter(**filt).order_by(field, 'slug')
+        ps = self.parent.photo_children.getRestricted(user, **filt).order_by(field, 'slug')
         count = ps.count()
         return ps[max(0, count-n):count]
 
-    def get_next(self, public=True):
+    def get_next(self, user=None, field='date_taken'):
+        a=self.get_next_n(n=1, user=user, field=field)
         try:
-            if public: return self.get_next_by_date_taken(parent=self.parent, is_public=True)
-            else: return self.get_next_by_date_taken(parent=self.parent)
-        except Photo.DoesNotExist:
+            return a[0]
+        except IndexError:
             return None
 
-    def get_previous(self, public=True):
+    def get_previous(self, user=None, field='date_taken'):
+        a = self.get_previous_n(n=1, user=user, field=field)
         try:
-            if public: return self.get_previous_by_date_taken(parent=self.parent, is_public=True)
-            else: return self.get_previous_by_date_taken(parent=self.parent)
-        except Photo.DoesNotExist:
+            return a[0]
+        except IndexError:
             return None
 
     @property
@@ -240,6 +256,8 @@ class Gallery(models.Model):
     is_public = models.BooleanField(_('is public'), default=False,
                                     help_text=_('Public galleries will be displayed in the default views.'))
 
+    objects = RestrictedManager()
+    
     class Meta:
         ordering = ['-date_beginning']
         get_latest_by = 'date_beginning'
@@ -254,7 +272,7 @@ class Gallery(models.Model):
         return self.__unicode__()
 
     def admin_thumb(self):
-        return ''.join(['<img src="%s"/>'%im.smallthumb.url for im in self.sample(count=3, public=False)])
+        return ''.join(['<img src="%s"/>'%im.smallthumb.url for im in self.sample(count=3)])
 
     admin_thumb.short_description = _('Thumbnail')
     admin_thumb.allow_tags = True
@@ -262,46 +280,28 @@ class Gallery(models.Model):
     def get_absolute_url(self):
         return reverse('gl-gallery', args=[self.slug])
 
-    def latest(self, limit=0, public=True):
-        if limit == 0:
-            limit = self.photo_count()
-        if public:
-            return self.public()[:limit]
-        else:
-            return self.photos.all()[:limit]
+    def pickSamples(self, count=0, user=user, force=False):
+        self.samples = self.sample(count=count, user=user) 
 
-    def samplegallery(self, public=True):
-        return self.sample(count=SAMPLE_SIZE, public=public)
-
-    def pickSamples(self, count=0, public=True, force=False):
-        self.samples = self.sample(count=count, public=public) 
-
-    def sample(self, count=0, public=True):
-        photo_set = self.photo_children.all()
-        if public: photo_set = photo_set.filter(is_public=True)
+    def sample(self, count=0, user=None):
+        photo_set = self.photo_children.getRestricted(user)
 
         mycount = photo_set.count()
 
         if count > mycount or mycount==0:
-            children = self.gallery_children.all()
-            if public: children = children.filter(is_public=True)
-            photo_set = reduce(operator.or_, [photo_set]+[g.photo_children.all() for g in children])
-            if public: photo_set = photo_set.filter(is_public=True)
+            children = self.gallery_children.getRestricted(user)
+            photo_set = reduce(operator.or_, [photo_set]+[g.photo_children.getRestricted(user) for g in children])
         if count==0: pick = photo_set.count()
         else: pick = count
         return photo_set.order_by('-num_views')[:pick]
 
-    def photo_count(self, public=True):
-        p = self.photo_children.all()
-        if public: p = p.filter(is_public=True)
+    def photo_count(self, user=user):
+        p = self.photo_children.getRestricted(user)
         return p.count()
     photo_count.short_description = _('count')
-	
-    def public(self):
-        return self.photo_children.filter(is_public=True)
- 
+    
     def save(self, *args, **kwargs):
-        if self.photo_count(public=False):
+        if self.photo_children.count():
             self.date_beginning = self.photo_children.order_by('date_taken')[0].date_taken
             pass
         models.Model.save(self, *args, **kwargs)
@@ -316,6 +316,8 @@ class Folder(Gallery):
 
     foldername = models.CharField(_('folder name'), max_length=60, help_text=_('A non-changing name for the folder'), null=False, blank=False)
     parent = models.ForeignKey('self', related_name='folder_children', null=True, blank=True)
+    
+    objects = RestrictedManager(filterParent=True)
     
     @property
     def gallery_children(self):
@@ -356,8 +358,6 @@ class Folder(Gallery):
             path.pop()
         return path
 
-    def public_galleries(self):
-        return self.folder_children.filter(is_public=True)
     def htaccess(self):
         global PRIVATE_IPS
         f = open(os.path.join(self.abspath(), '.htaccess'), 'w')
@@ -370,6 +370,7 @@ class Folder(Gallery):
         else:
             f.writelines(['<Files "%s">\nDeny from all\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
         f.close()
+        
     def folderpath(self, includeSelf=True):
         return os.path.join(*[f.foldername for f in self.ancestry(includeSelf=includeSelf)])
     def relpath(self, includeSelf=True):
@@ -387,6 +388,7 @@ class Folder(Gallery):
         """Returns True if self and all parents are public"""
         return all([f.is_public for f in self.ancestry(includeSelf=True)])
 
+    
 class AutoCollection(Gallery):
     queryfield = models.CharField(null=False, blank=False, default='date_taken', max_length=50, verbose_name=_('Field name used to query photos and galleries'))
     ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), max_length=1, default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
@@ -396,19 +398,19 @@ class AutoCollection(Gallery):
 
     class Meta:
         ordering = ['title']
+    
+    def __getquery(self, query, user=None, **filt):
+        if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
 
-    def __getquery(self, query, **filt):
-        if str(self.queryfield)=='date_taken': query = query.exclude(date_taken__gte=F('date_added')) # Ignores invalid date_taken EXIF
-
-        q = query.filter(**filt).order_by(self.order_by)
+        q = query.getRestricted(user, **filt).order_by(self.order_by)
 
         if self.number==0: n = q.count()-1
         else: n = min(self.number, q.count()-1)
         cutoff = getattr(q[n], self.queryfield)
         if self.ordering == '': ranger = str(self.queryfield) + '__lt'
         else: ranger = str(self.queryfield) + '__gt'
-        filt[ranger]=cutoff
-        return query.filter(**filt).order_by(self.order_by)
+        filtme={}; filtme[ranger]=cutoff
+        return q.filter(**filtme)
 
     @property
     def order_by(self):
@@ -432,7 +434,7 @@ class AutoCollection(Gallery):
     def gallery_children(self):
         return self.folder_children
 
-    def sample(self, count=0, public=True):
+    def sample(self, count=0, user=None, public=True):
         if count==0: count = self.photo_children.all().count()
         filt ={}
         if public: filt['is_public']=True; filt['parent__is_public']=True;

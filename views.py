@@ -95,10 +95,6 @@ def urlparse(request, path=None):
 
 
 # Utilities
-def filterquery(request, query, **filt):
-    """Handles default (and any custom) filtering on a QuerySet"""
-    if not request.user.is_staff: filt['is_public']=True
-    return query.filter(**filt)
 
 def folderFromPath(path):
     pathlist = path.split('/')

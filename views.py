@@ -27,7 +27,7 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
         if gallery: children = gallery.gallery_children
         else: gallery = []
 
-    if isinstance(photos, RestricedQuerySet) or isinstance(photos, RestrictedManager): photos=photos.getRestricted(request.user, **photosFilter).select_related()
+    if isinstance(photos, RestrictedQuerySet) or isinstance(photos, RestrictedManager): photos=photos.getRestricted(request.user, **photosFilter).select_related()
     if isinstance(children, RestrictedQuerySet) or isinstance(children, RestrictedManager): children = children.getRestricted(request.user, **childrenFilter).select_related()
 
     staff=request.user.is_staff

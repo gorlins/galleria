@@ -24,8 +24,8 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
         if gallery: children = gallery.gallery_children
         else: gallery = []
 
-    if isinstance(photos, QuerySet) or isinstance(photos, Manager): photos = filterquery(request, photos, **photosFilter).select_related()
-    if isinstance(children, QuerySet) or isinstance(children, Manager): children = filterquery(request, children, **childrenFilter).select_related()
+    if isinstance(photos, QuerySet) or isinstance(photos, Manager): photos=photos.getRestricted(request.user, **photosFilter).select_related()
+    if isinstance(children, QuerySet) or isinstance(children, Manager): children = children.getRestricted(request.user, **childrenFilter).select_related()
 
     staff=request.user.is_staff
     if staff or gallery is None or gallery.publicAncestry:
@@ -49,7 +49,9 @@ def renderPhoto(request, photo):
 
 # Parsers
 def galleryRoot(request):
-    return renderGallery(request, children=list(filterquery(request, AutoCollection.objects)) + list(filterquery(request, Folder.objects, parent=None)), photos=Photo.objects, photosFilter={'parent':None})
+    return renderGallery(request,
+                         children=list(AutoCollection.gallery_objects.getRestricted(request.user)) + list(Folder.objects.getRestricted(request.user, parent=None)),
+                         photos=Photo.objects, photosFilter={'parent':None})
 
 def folderparse(request, path):
     return renderGallery(request,gallery=folderFromPath(path))

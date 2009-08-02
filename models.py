@@ -28,8 +28,8 @@ def uploadFolder(photo, filename):
 
 class RestrictedQuerySet(models.query.QuerySet):
     def __init__(self, filterParent=False, **kwargs):
-        self._filterparent=filterParent
         models.query.QuerySet.__init__(self, **kwargs)
+        self._filterparent=filterParent
         
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting

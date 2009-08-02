@@ -47,8 +47,7 @@ class RestrictedManager(models.Manager):
         models.Manager.__init__(self, **kwargs)
         
     def get_query_set(self):
-        filterParent = self._filterparent
-        return RestrictedQuerySet(self, filterParent=filterParent, model=self.model)
+        return RestrictedQuerySet(filterParent=self._filterparent, model=self.model)
     
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting

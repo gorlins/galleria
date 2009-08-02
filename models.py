@@ -17,7 +17,6 @@ import subprocess
 import operator
 from django.db.models import F, Q
 
-
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
@@ -35,11 +34,10 @@ class RestrictedQuerySet(models.query.QuerySet):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
         if not user is None and user.is_anonymous:
-            pass
+            return models.query.EmptyQuerySet(model=self.model)
         if not user is None and not user.is_staff:
             filt['is_public']=True
             if self._filterparent:
-                filt['parent__is_public__in']=[True,None]
                 q = Q(parent=None) | Q(parent__is_public=True)
                 return self.filter(q, **filt)
         return self.filter(**filt)

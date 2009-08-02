@@ -30,15 +30,15 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
     staff=request.user.is_staff
     if staff or gallery is None or gallery.publicAncestry:
         for c in children:
-            c.pickSamples(count=SAMPLE_SIZE, public= not staff)
+            c.pickSamples(count=SAMPLE_SIZE, user=request.user)
         return render_to_response('galleria/gallery_detail.html', {'gallery':gallery, 'children':children, 'photos':photos, 'staff':staff, 'request':request})
     raise Http404
 
 def renderPhoto(request, photo):
     staff=request.user.is_staff
     if staff or photo.publicAncestry:
-        prevn = photo.get_previous_n(public=not staff)
-        nextn = photo.get_next_n(public = not staff)
+        prevn = photo.get_previous_n(user=request.user)
+        nextn = photo.get_next_n(user=request.user)
         if nextn: next = nextn[0]
         else: next = None
         if prevn: prev = prevn[prevn.count()-1]

@@ -17,6 +17,7 @@ import subprocess
 import operator
 from django.db.models import F
 
+
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
@@ -25,19 +26,34 @@ PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
 def uploadFolder(photo, filename):
     return os.path.join(GALLERIA_ROOT, photo.folderpath(), filename)
 
-class RestrictedManager(models.Manager):
+class RestrictedQuerySet(models.query.QuerySet):
     def __init__(self, filterParent=False, **kwargs):
         self._filterparent=filterParent
-        models.Manager.__init__(self, **kwargs)
+        models.query.QuerySet.__init__(self, **kwargs)
+        
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
-        
         if not user is None and not user.is_staff:
             filt['is_public']=True
             if self._filterparent:
                 filt['parent__is_public']=True
-        return models.Manager.get_query_set(self).filter(**filt)
+        return self.filter(**filt)
+    
+class RestrictedManager(models.Manager):
+    
+    def __init__(self, filterParent=False, **kwargs):
+        self._filterparent=filterParent
+        models.Manager.__init__(self, **kwargs)
+
+    def get_query_set(self):
+        return RestrictedQuerySet(self, filterParent=self._filterparent, model=self.model)
+    
+    def getRestricted(self, user, **filt):
+        """Handles default (and any custom) filtering on a QuerySet, restricting
+        accesss to objects based on user"""
+        
+        return self.get_query_set().getRestricted(user, **filt)
 
 # Models
 class Photo(ImageModel):

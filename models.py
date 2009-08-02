@@ -295,7 +295,7 @@ class Gallery(models.Model):
         else: pick = count
         return photo_set.order_by('-num_views')[:pick]
 
-    def photo_count(self, user=user):
+    def photo_count(self, user=None):
         p = self.photo_children.getRestricted(user)
         return p.count()
     photo_count.short_description = _('count')

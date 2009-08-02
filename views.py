@@ -6,14 +6,17 @@ from django.http import Http404
 #from django.conf import settings
 from galleria.models import *
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import AnonymousUser
 from django.conf import settings
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
+
 # Renderers
 def renderGallery(request, gallery=None, children=None, childrenFilter={}, photos=None, photosFilter={}):
     """Renders a gallery, subgalleries, and/or photos"""
 
+    if request.user is None: request.user = AnonymousUser()
     if gallery is None and children is None and photos is None:
         return galleryRoot(request)
 
@@ -35,6 +38,7 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
     raise Http404
 
 def renderPhoto(request, photo):
+    if request.user is None: request.user = AnonymousUser()
     staff=request.user.is_staff
     if staff or photo.publicAncestry:
         prevn = photo.get_previous_n(user=request.user)
@@ -49,14 +53,17 @@ def renderPhoto(request, photo):
 
 # Parsers
 def galleryRoot(request):
+    if request.user is None: request.user = AnonymousUser()
     return renderGallery(request,
                          children=list(AutoCollection.objects.getRestricted(request.user)) + list(Folder.objects.getRestricted(request.user, parent=None)),
                          photos=Photo.objects, photosFilter={'parent':None})
 
 def folderparse(request, path):
+    if request.user is None: request.user = AnonymousUser()
     return renderGallery(request,gallery=folderFromPath(path))
     
 def photoparse(request, path, photo):
+    if request.user is None: request.user = AnonymousUser()
     try:
         p = folder.photo_children.get(slug=photo)
         return renderPhoto(request, p)
@@ -64,6 +71,7 @@ def photoparse(request, path, photo):
         raise Http404
 
 def urlparse(request, path=None):
+    if request.user is None: request.user = AnonymousUser()
     if path == '':
         return galleryRoot(request)
     pathlist = path.split('/')

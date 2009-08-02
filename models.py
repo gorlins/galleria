@@ -32,7 +32,8 @@ class RestrictedManager(models.Manager):
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
-        if not user.is_staff:
+        
+        if not user is None and not user.is_staff:
             filt['is_public']=True
             if self._filterparent:
                 filt['parent__is_public']=True

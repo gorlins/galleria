@@ -15,7 +15,7 @@ from django.core.files.base import ContentFile, File
 from StringIO import StringIO
 import subprocess
 import operator
-from django.db.models import F
+from django.db.models import F, Q
 
 
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
@@ -37,7 +37,9 @@ class RestrictedQuerySet(models.query.QuerySet):
         if not user is None and not user.is_staff:
             filt['is_public']=True
             if self._filterparent:
-                filt['parent__is_public']=True
+                filt['parent__is_public__in']=[True,None]
+                q = Q(parent=None) | Q(parent__is_public=True)
+                return self.filter(q, **filt)
         return self.filter(**filt)
     
 class RestrictedManager(models.Manager):

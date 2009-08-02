@@ -60,7 +60,7 @@ def galleryRoot(request):
 
 def folderparse(request, path):
     if request.user is None: request.user = AnonymousUser()
-    return renderGallery(request,gallery=folderFromPath(path))
+    return renderGallery(request,gallery=folderFromPath(path, request.user))
     
 def photoparse(request, path, photo):
     if request.user is None: request.user = AnonymousUser()
@@ -80,7 +80,7 @@ def urlparse(request, path=None):
             return renderGallery(request, gallery=AutoCollection.objects.get(slug=pathlist[0]))
         except AutoCollection.DoesNotExist:
             pass
-    children = Folder.objects.filter(parent=None).select_related()
+    children = Folder.objects.getRestricted(request.user, parent=None).select_related()
     pathlist.reverse()
     folder = None
     
@@ -88,14 +88,14 @@ def urlparse(request, path=None):
         slug = pathlist.pop()
         try:
             folder = children.get(slug=slug)
-            children = folder.folder_children
+            children = folder.folder_children.getRestricted(request.user)
         except Folder.DoesNotExist:
             if len(pathlist) == 0:
                 try:
                     if folder is None:
-                        photo = Photo.objects.filter(parent=None).get(slug=slug)
+                        photo = Photo.objects.getRestricted(request.user, parent=None).get(slug=slug)
                     else:
-                        photo = folder.photo_children.get(slug=slug)
+                        photo = folder.photo_children.getRestricted(request.user).get(slug=slug)
                     return renderPhoto(request, photo)
                     
                 except Photo.DoesNotExist:
@@ -106,15 +106,15 @@ def urlparse(request, path=None):
 
 # Utilities
 
-def folderFromPath(path):
+def folderFromPath(path, user):
     pathlist = path.split('/')
     folder = None
-    children = Folder.objects.filter(parent=None)
+    children = Folder.objects.getRestricted(user, parent=None)
     while len(pathlist):
         slug = pathlist.pop()
         try:
             folder = children.get(slug=slug)
-            children = folder.folder_children
+            children = folder.folder_children.getRestricted(user)
         except Folder.DoesNotExist:
             raise Http404
     return folder

@@ -50,7 +50,7 @@ def renderPhoto(request, photo):
 # Parsers
 def galleryRoot(request):
     return renderGallery(request,
-                         children=list(AutoCollection.gallery_children.getRestricted(request.user)) + list(Folder.objects.getRestricted(request.user, parent=None)),
+                         children=list(AutoCollection.objects.getRestricted(request.user)) + list(Folder.objects.getRestricted(request.user, parent=None)),
                          photos=Photo.objects, photosFilter={'parent':None})
 
 def folderparse(request, path):

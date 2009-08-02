@@ -33,7 +33,7 @@ class RestrictedQuerySet(models.query.QuerySet):
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
-        if not user is None and user.is_anonymous:
+        if not user is None and user.is_anonymous():
             return models.query.EmptyQuerySet(model=self.model)
         if not user is None and not user.is_staff:
             filt['is_public']=True

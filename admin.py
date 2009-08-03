@@ -4,28 +4,28 @@
 from django.contrib import admin
 from models import *
 
-def make_public(modeladmin, queryset):
+def make_public(modeladmin, request, queryset):
     for obj in queryset:
         obj.is_public=True
         obj.save()
 make_public.short_description = 'Make selected public'
-def make_private(modeladmin, queryset):
+def make_private(modeladmin, request, queryset):
     for obj in queryset:
         obj.is_public=False
         obj.save()
 make_private.short_description = 'Make selected private'
 
-def resave(modeladmin, queryset):
+def resave(modeladmin, request, queryset):
     for obj in queryset:
         obj.save()
 resave.short_description = "Resave all"
 
-def deleteme(modeladmin, queryset):
+def deleteme(modeladmin, request, queryset):
     for obj in queryset:
         obj.delete()
 deleteme.short_description = "Properly delete objects"
 
-def precache(modeladmin, queryset):
+def precache(modeladmin, request, queryset):
     for obj in queryset:
         if isinstance(obj, Photo):
             obj._pre_cache()

@@ -55,9 +55,14 @@ def walkFolders(localdir, parent):
         os.makedirs(cachedir)
 
     if parent is None:
-        childFolders = Folder.objects.filter(parent=None)
-        childPhotos = Photo.objects.filter(parent=None)
+        childFolders = Folder.objects.filter(parent=None).select_related()
+        childPhotos = Photo.objects.filter(parent=None).select_related()
         parentabsdir = ''
+    elif parent.id is None:
+        # If folder isn't saved yet
+        childFolders = models.query.EmptyQuerySet(model=Folder)
+        childPhotos = models.query.EmptyQuerySet(model=Photo)
+        parentabsdir = parent.folderpath()
     else:
         childFolders = parent.folder_children.all()
         childPhotos = parent.photo_children.all()
@@ -88,10 +93,17 @@ def walkFolders(localdir, parent):
             try:
                 folder = childFolders.get(foldername=f)
             except Folder.DoesNotExist:
+                try:
+                    if parent.mustsave:
+                        parent.save()
+                        parent.mustsave = False
+                except AttributeError:
+                    pass
                 folder = Folder(title=f, slug=slug, foldername=f, parent=parent)
-                folder.save()
+                folder.mustsave=True#save() # Will save if any folders are added
                 print '+F', folder.folderpath()
             fvalid = walkFolders(thisf, folder)
+  
             if fvalid:
                 foundFolders.append(f)
             valid = valid or fvalid
@@ -107,7 +119,7 @@ def walkFolders(localdir, parent):
                 stat = os.stat(thisf)
                 atime = datetime.fromtimestamp(stat.st_atime)
                 if atime > photo.date_added:
-                    print '~', photo.folderpath(), photo.title
+                    print '~', photo.folderpath(), ':', photo.title
                     modified+=1
                     photo.date_added=atime
                     if not os.path.islink(thisf):
@@ -115,25 +127,37 @@ def walkFolders(localdir, parent):
                     photo.save(clear_cache=True)
 
             except Photo.DoesNotExist:
+                try:
+                    if parent.mustsave:
+                        parent.save()
+                        parent.mustsave=False # Prevents unnecessary saving
+                except AttributeError:
+                    pass
+
                 photo = Photo.create(thisf, uploadName=f, title=f, parent=parent, slug=slug, preCache=PRECACHE_NEW)
-                print '+', photo.folderpath(), photo.title
+                print '+', photo.folderpath(), ':', photo.title
                 added+=1
             valid=True
             foundPhotos.append(slug)
 
     # Delete orphans
     for p in childPhotos.exclude(slug__in=foundPhotos):
-        print '-', p.folderpath(), p.title
+        print '-', p.folderpath(), ':', p.title
         p.delete()
+    
     for f in childFolders.exclude(foldername__in=foundFolders):
         print '-F', f.folderpath()
+        print parent.title
+        print foundFolders
+        print childFolders
+        print f.mustsave
         f.delete()
 
     # Delete this folder if invalid
     if valid and not parent is None:
         parent.save()
-    elif (not valid) and (not parent is None):
-        #print '-F', parent.folderpath()
+    elif (not valid) and (not parent is None) and parent.id is None:
+        print '-F', parent.folderpath(), 'Empty'
         #parent.delete()#is this necessary with the above foundFolders??
         pass
     return valid

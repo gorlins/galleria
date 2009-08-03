@@ -33,13 +33,17 @@ class RestrictedQuerySet(models.query.QuerySet):
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
-        if not user is None and user.is_anonymous():
-            return models.query.EmptyQuerySet(model=self.model)
-        if not user is None and not user.is_staff:
-            filt['is_public']=True
-            if self._filterparent:
-                q = Q(parent=None) | Q(parent__is_public=True)
-                return self.filter(q, **filt)
+        if user is None or user.is_staff():
+            level=0
+        elif user.is_authenticated():
+            level=1
+        elif user.is_anonymous():
+            level=2
+
+        filt[is_public__gte=level]
+        if self._filterparent:
+            q = Q(parent=None) | Q(parent__is_public__gte=level)
+            return self.filter(q, **filt)
         return self.filter(**filt)
     
 class RestrictedManager(models.Manager):
@@ -67,7 +71,7 @@ class Photo(ImageModel):
     date_added = models.DateTimeField(_('date published'), default=datetime.now)
     date_taken = models.DateTimeField(_('date taken'), default=datetime.now)
     parent = models.ForeignKey('Folder', related_name="photo_children", blank=True, null=True)
-    is_public = models.BooleanField(_('is public'), default=True, help_text=_('Public photographs will be displayed in the default views.'))
+    is_public = models.SmallIntegerField(_('is public'), choices=((0, 'Private'), (1, 'Public (Restricted)'), (2, 'Public (Shared)')), default=1, help_text=_('Public photographs will be displayed in the default views.'))
 
     objects = RestrictedManager(filterParent=True)
     
@@ -272,8 +276,7 @@ class Gallery(models.Model):
     date_beginning = models.DateTimeField(_('date of first photo'), default=datetime.now)
     
     description = models.TextField(_('description'), blank=True)
-    is_public = models.BooleanField(_('is public'), default=False,
-                                    help_text=_('Public galleries will be displayed in the default views.'))
+    is_public = models.SmallIntegerField(_('is public'), choices=((0, 'Private'), (1, 'Public (Restricted)'), (2, 'Public (Shared)')), default=0, help_text=_('Public galleries will be displayed in the default views.'))
 
     objects = RestrictedManager()
     
@@ -380,14 +383,19 @@ class Folder(Gallery):
     def htaccess(self):
         global PRIVATE_IPS
         f = open(os.path.join(self.abspath(), '.htaccess'), 'w')
+
+        f.write('AuthType Basic\nAuthName "Restricted Area"\n')
+        f.write('AuthUserFile "/home6/scottgo1/.htpasswds/public_html/test/passwd"\n')
         if not self.is_public:
-            f.write('Order Deny,Allow\nDeny from all\n')
-            if not operator.isSequenceType(PRIVATE_IPS):
-                PRIVATE_IPS = [PRIVATE_IPS]
-            f.writelines(['Allow from %s\n'%ip for ip in PRIVATE_IPS if (not ip is None or ip=='')])
-            f.write('Satisfy Any\n')
+            f.write('require valid-user\n')
+            #f.write('Order Deny,Allow\nDeny from all\n')
+            #if not operator.isSequenceType(PRIVATE_IPS):
+            #    PRIVATE_IPS = [PRIVATE_IPS]
+            #f.writelines(['Allow from %s\n'%ip for ip in PRIVATE_IPS if (not ip is None or ip=='')])
+            #f.write('Satisfy Any\n')
         else:
-            f.writelines(['<Files "%s">\nDeny from all\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
+            #f.writelines(['<Files "%s">\nDeny from all\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
+            f.writelines(['<Files "%s">\nrequire valid-user\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
         f.close()
         
     def folderpath(self, includeSelf=True):

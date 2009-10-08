@@ -440,7 +440,8 @@ class AutoCollection(Gallery):
             self._numfield = numfield
         def get_query_set(self, user=None):
             queryfield = self._parent.queryfield
-            if queryfield == 'date_taken' and  (queryfield in self._manager.model._meta.get_all_field_names()):
+            try:
+            if queryfield == 'date_taken' and (queryfield not in self._manager.model._meta.get_all_field_names()):
                 queryfield = 'date_beginning'
             return self._parent._getquery(self._manager.get_query_set(), queryfield, user=user, number=getattr(self._parent, self._numfield))
         def getRestricted(self, user, **filt):

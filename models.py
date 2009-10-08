@@ -442,10 +442,13 @@ class AutoCollection(Gallery):
             from django.core.exceptions import FieldError
             queryfield = self._parent.queryfield
             try:
-                return self._parent._getquery(self._manager.get_query_set(), queryfield, user=user, number=getattr(self._parent, self._numfield))
+                return self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
             except FieldError, f:
                 if queryfield == 'date_taken':
-                    return self._parent._getquery(self._manager.get_query_set(), 'date_beginning', user=user, number=getattr(self._parent, self._numfield))
+                    self.queryfield = 'date_beginning'
+                    out = self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
+                    self.queryfield = queryfield
+                    return out
                 raise f
 
         def getRestricted(self, user, **filt):
@@ -466,7 +469,8 @@ class AutoCollection(Gallery):
             return self._folder_children
         return Folder.objects.none()
 
-    def _getquery(self, query, queryfield, user=None, number=0, **filt):
+    def _getquery(self, query, user=None, number=0, **filt):
+        queryfield = self.queryfield
         if str(queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)

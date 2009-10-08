@@ -33,14 +33,14 @@ class RestrictedQuerySet(models.query.QuerySet):
     def getRestricted(self, user, **filt):
         """Handles default (and any custom) filtering on a QuerySet, restricting
         accesss to objects based on user"""
-        if user is None or user.is_staff():
+        if user is None or user.is_staff:
             level=0
         elif user.is_authenticated():
             level=1
-        elif user.is_anonymous():
+        else:
             level=2
 
-        filt[is_public__gte=level]
+        filt['is_public__gte']=level
         if self._filterparent:
             q = Q(parent=None) | Q(parent__is_public__gte=level)
             return self.filter(q, **filt)
@@ -202,7 +202,7 @@ class Photo(ImageModel):
             except (TypeError, KeyError):
                 # Fallback to file creation time
                 s = os.stat(self.image.path)
-                self.date_taken = datetime.fromtimestamp(s.st_ctime)
+                self.date_taken = min(datetime.fromtimestamp(min(s.st_atime, s.st_mtime, s.st_ctime)), self.date_added)
                 exif_date = None
         
         if exif_date is not None:
@@ -281,7 +281,7 @@ class Gallery(models.Model):
     objects = RestrictedManager()
     
     class Meta:
-        ordering = ['-date_beginning']
+        ordering = ['title']
         get_latest_by = 'date_beginning'
         verbose_name = _('gallery')
         verbose_name_plural = _('galleries')
@@ -346,6 +346,7 @@ class Folder(Gallery):
         return self.folder_children
 
     class Meta:
+        ordering = ['title']
         verbose_name = _('folder')
         verbose_name_plural = _('folders')
 
@@ -395,7 +396,7 @@ class Folder(Gallery):
             #f.write('Satisfy Any\n')
         else:
             #f.writelines(['<Files "%s">\nDeny from all\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
-            f.writelines(['<Files "%s">\nrequire valid-user\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=False)])
+            f.writelines(['<Files "%s">\nrequire valid-user\n</Files>\n'%p.title for p in self.photo_children.filter(is_public=0)])
         f.close()
         
     def folderpath(self, includeSelf=True):
@@ -417,6 +418,11 @@ class Folder(Gallery):
 
     
 class AutoCollection(Gallery):
+    """Manages collection of top N photos/folders by category.
+
+    Currently, photo_children and folder_children must be called first
+    with {autocollection}.photo_children.getRestricted(user)... to work
+    """
     queryfield = models.CharField(null=False, blank=False, default='date_taken', max_length=50, verbose_name=_('Field name used to query photos and galleries'))
     ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), max_length=1, default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
     number = models.IntegerField(blank=False, null=False, default=100, verbose_name=_('Maximum number of photos to show (0 means all)'))
@@ -426,7 +432,30 @@ class AutoCollection(Gallery):
     class Meta:
         ordering = ['title']
     
-    def __getquery(self, query, user=None, number=0, **filt):
+    class AutoManager(object):
+        def __init__(self, parent, manager, **kwargs):
+            self._parent=parent
+            self._manager = manager
+        def get_query_set(self, user=None):
+            return self._parent._getquery(self._manager.get_query_set(), user=user)
+        def getRestricted(self, user, **filt):
+            return self.get_query_set(user=user).filter(**filt)
+        def __getattr__(self, name):
+            # Passes Manager methods on to Manager
+            return getattr(self._manager, name)
+
+
+    def __init__(self, *args, **kwargs):
+        Gallery.__init__(self, *args, **kwargs)
+        self.photo_children = AutoCollection.AutoManager(self, Photo.objects)
+        self._folder_children = AutoCollection.AutoManager(self, Folder.objects)
+    @property
+    def folder_children(self):
+        if self.includeGalleries:
+            return self._folder_children
+        return Folder.objects.none()
+
+    def _getquery(self, query, user=None, **filt):
         if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)
@@ -451,16 +480,6 @@ class AutoCollection(Gallery):
     def order_by(self):
         return self.ordering+self.queryfield
 
-    @property
-    def photo_children(self):
-        return self.__getquery(Photo.objects, number=self.number)
-
-    @property
-    def folder_children(self):
-        if self.includeGalleries:
-            return self.__getquery(Folder.objects, number=self.galleryNumber)
-        return Folder.objects.none()
-
     @property 
     def publicAncestry(self):
         return self.is_public
@@ -469,11 +488,10 @@ class AutoCollection(Gallery):
     def gallery_children(self):
         return self.folder_children
 
-    def sample(self, count=0, user=None, public=True):
-        if count==0: count = self.photo_children.all().count()
-        filt ={}
-        if public: filt['is_public']=True; filt['parent__is_public']=True;
-        return self.__getquery(Photo.objects, **filt)[:count]
+    def sample(self, count=0, user=None):
+        p = self.photo_children.getRestricted(user)
+        if count==0: count = p.count()
+        return p[:count]
 
 
 #class Collection(Gallery):

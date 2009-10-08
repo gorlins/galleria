@@ -445,9 +445,9 @@ class AutoCollection(Gallery):
                 return self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
             except FieldError, f:
                 if queryfield == 'date_taken':
-                    self.queryfield = 'date_beginning'
+                    self._parent.queryfield = 'date_beginning'
                     out = self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
-                    self.queryfield = queryfield
+                    self._parent.queryfield = queryfield
                     return out
                 raise f
 

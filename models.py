@@ -464,7 +464,7 @@ class AutoCollection(Gallery):
         q = query.getRestricted(user, **filt).order_by(self.order_by)
 
         if number == 0: n = q.count()-1
-        else: n = min(number, q.count()-1)
+        else: n = min(number, q.count())-1
         cutoff = getattr(q[n], self.queryfield)
         if self.ordering == '': ranger = str(self.queryfield) + '__lt'
         else: ranger = str(self.queryfield) + '__gt'

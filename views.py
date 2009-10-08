@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.http import HttpResponse
 from django.template.defaultfilters import slugify
 import os
@@ -80,8 +81,8 @@ def urlparse(request, path=None):
     if len(pathlist)==1:
         try:
             auto = AutoCollection.objects.getRestricted(request.user).get(slug=pathlist[0])
-            (children, photos) = auto.getCollection(request.user)
-            return renderGallery(request, gallery=auto, children=children,photos=photos)
+            #(children, photos) = auto.getCollection(request.user)
+            return renderGallery(request, gallery=auto)#, children=children,photos=photos)
         except AutoCollection.DoesNotExist:
             pass
     children = Folder.objects.getRestricted(request.user, parent=None).select_related()

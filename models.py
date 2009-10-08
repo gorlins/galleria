@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.conf import settings
 from django.db import models
 
@@ -433,11 +434,12 @@ class AutoCollection(Gallery):
         ordering = ['title']
     
     class AutoManager(object):
-        def __init__(self, parent, manager, **kwargs):
+        def __init__(self, parent, manager, numfield, **kwargs):
             self._parent=parent
             self._manager = manager
+            self._numfield = numfield
         def get_query_set(self, user=None):
-            return self._parent._getquery(self._manager.get_query_set(), user=user)
+            return self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
         def getRestricted(self, user, **filt):
             return self.get_query_set(user=user).filter(**filt)
         def __getattr__(self, name):
@@ -447,15 +449,16 @@ class AutoCollection(Gallery):
 
     def __init__(self, *args, **kwargs):
         Gallery.__init__(self, *args, **kwargs)
-        self.photo_children = AutoCollection.AutoManager(self, Photo.objects)
-        self._folder_children = AutoCollection.AutoManager(self, Folder.objects)
+        self.photo_children = AutoCollection.AutoManager(self, Photo.objects, 'number')
+        self._folder_children = AutoCollection.AutoManager(self, Folder.objects, 'galleryNumber')
+
     @property
     def folder_children(self):
         if self.includeGalleries:
             return self._folder_children
         return Folder.objects.none()
 
-    def _getquery(self, query, user=None, **filt):
+    def _getquery(self, query, user=None, number=0, **filt):
         if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)

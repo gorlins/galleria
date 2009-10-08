@@ -459,7 +459,7 @@ class AutoCollection(Gallery):
         return Folder.objects.none()
 
     def _getquery(self, query, user=None, number=0, **filt):
-        if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
+        if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_beginning') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)
 

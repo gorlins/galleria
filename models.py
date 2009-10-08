@@ -420,24 +420,32 @@ class AutoCollection(Gallery):
     queryfield = models.CharField(null=False, blank=False, default='date_taken', max_length=50, verbose_name=_('Field name used to query photos and galleries'))
     ordering = models.CharField(choices = (('', 'Ascending'), ('-', 'Descending')), max_length=1, default='', null=False, verbose_name=_('Ordering used to chose photos and galleries'))
     number = models.IntegerField(blank=False, null=False, default=100, verbose_name=_('Maximum number of photos to show (0 means all)'))
-    galleryNumber = models.IntegerField(blank=False, null=False, default=6, verbose_name=_('Maximum number of galleries to show (0 means all) [unused]'))
+    galleryNumber = models.IntegerField(blank=False, null=False, default=6, verbose_name=_('Maximum number of galleries to show (0 means all)'))
     includeGalleries = models.BooleanField(default=False, verbose_name=_('Include galleries in this collection?'))
 
     class Meta:
         ordering = ['title']
     
-    def __getquery(self, query, user=None, **filt):
+    def __getquery(self, query, user=None, number=0, **filt):
         if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_added') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)
 
-        if self.number==0: n = q.count()-1
-        else: n = min(self.number, q.count()-1)
+        if number == 0: n = q.count()-1
+        else: n = min(number, q.count()-1)
         cutoff = getattr(q[n], self.queryfield)
         if self.ordering == '': ranger = str(self.queryfield) + '__lt'
         else: ranger = str(self.queryfield) + '__gt'
         filtme={}; filtme[ranger]=cutoff
         return q.filter(**filtme)
+
+    def getCollection(self, user):
+        if self.includeGalleries:
+            c = self.__getquery(Folder.objects.all(), number=self.number, user=user)
+        else:
+            c = Folder.objects.none()
+        p = self.__getquery(Photo.objects.all(), number = self.galleryNumber, user=user)
+        return c,p
 
     @property
     def order_by(self):
@@ -445,12 +453,12 @@ class AutoCollection(Gallery):
 
     @property
     def photo_children(self):
-        return self.__getquery(Photo.objects)
+        return self.__getquery(Photo.objects, number=self.number)
 
     @property
     def folder_children(self):
         if self.includeGalleries:
-            return self.__getquery(Folder.objects)
+            return self.__getquery(Folder.objects, number=self.galleryNumber)
         return Folder.objects.none()
 
     @property 

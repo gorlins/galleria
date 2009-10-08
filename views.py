@@ -77,7 +77,9 @@ def urlparse(request, path=None):
     pathlist = path.split('/')
     if len(pathlist)==1:
         try:
-            return renderGallery(request, gallery=AutoCollection.objects.getRestricted(request.user).get(slug=pathlist[0]))
+            auto = AutoCollection.objects.getRestricted(request.user).get(slug=pathlist[0])
+            (children, photos) = auto.getCollection(request.user)
+            return renderGallery(request, gallery=auto, children=children,photos=photos)
         except AutoCollection.DoesNotExist:
             pass
     children = Folder.objects.getRestricted(request.user, parent=None).select_related()

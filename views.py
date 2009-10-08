@@ -27,8 +27,10 @@ def renderGallery(request, gallery=None, children=None, childrenFilter={}, photo
         if gallery: children = gallery.gallery_children
         else: gallery = []
 
-    if isinstance(photos, RestrictedQuerySet) or isinstance(photos, RestrictedManager): photos=photos.getRestricted(request.user, **photosFilter).select_related()
-    if isinstance(children, RestrictedQuerySet) or isinstance(children, RestrictedManager): children = children.getRestricted(request.user, **childrenFilter).select_related()
+    if hasattr(photos, 'getRestricted'):
+        photos=photos.getRestricted(request.user, **photosFilter).select_related()
+    if hasattr(children, 'getRestricted'):
+        children = children.getRestricted(request.user, **childrenFilter).select_related()
 
     staff=request.user.is_staff
     if staff or gallery is None or gallery.publicAncestry:

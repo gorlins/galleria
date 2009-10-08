@@ -116,12 +116,11 @@ def walkFolders(localdir, parent):
             try:
                 photo = childPhotos.get(slug=slug)
                 found += 1
-                stat = os.stat(thisf)
-                atime = datetime.fromtimestamp(stat.st_atime)
-                if atime > photo.date_added:
+                ps = os.stat(thisf)
+                ds = os.stat(photo.display.image.fp.name)
+                if ps.st_mtime > ds.st_mtime:
                     print '~', photo.folderpath(), ':', photo.title
                     modified+=1
-                    photo.date_added=atime
                     if not os.path.islink(thisf):
                         photo.image.save(photo.title, ContentFile(open(thisf).read()), save=False)
                     photo.save(clear_cache=True)
@@ -147,10 +146,6 @@ def walkFolders(localdir, parent):
     
     for f in childFolders.exclude(foldername__in=foundFolders):
         print '-F', f.folderpath()
-        print parent.title
-        print foundFolders
-        print childFolders
-        print f.mustsave
         f.delete()
 
     # Delete this folder if invalid

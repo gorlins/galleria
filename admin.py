@@ -4,17 +4,51 @@
 from django.contrib import admin
 from models import *
 
+def make_shared(modeladmin, request, queryset):
+    for obj in queryset:
+        obj.is_public=2
+        obj.save()
+        if queryset.model is Photo:
+            try:
+                obj.parent.save()
+            except AttributeError:
+                pass
+make_shared.short_description = 'Make selected public (shared)'
+
 def make_public(modeladmin, request, queryset):
     for obj in queryset:
-        obj.is_public=True
+        obj.is_public=1
         obj.save()
+        if queryset.model is Photo:
+            try:
+                obj.parent.save()
+            except AttributeError:
+                pass
 make_public.short_description = 'Make selected public'
+
 def make_private(modeladmin, request, queryset):
     for obj in queryset:
-        obj.is_public=False
+        obj.is_public=0
         obj.save()
+        if queryset.model is Photo:
+            try:
+                obj.parent.save()
+            except AttributeError:
+                pass
 make_private.short_description = 'Make selected private'
 
+def publishFolderContents(folder, request, queryset):
+    for folder in queryset:
+        folder.is_public=2
+        folder.photo_children.filter(is_public=1).update(is_public=2)
+        folder.save()
+publishFolderContents.short_description = "Publish folder and contents"
+def unpublishFolderContents(folder, request, queryset):
+    for folder in queryset:
+        folder.is_public=1
+        folder.photo_children.filter(is_public=2).update(is_public=1)
+        folder.save()
+unpublishFolderContents.short_description = "Unpublish folder and contents"
 def resave(modeladmin, request, queryset):
     for obj in queryset:
         obj.save()
@@ -43,10 +77,11 @@ class GalleryAdmin(admin.ModelAdmin):
 
 class FolderAdmin(admin.ModelAdmin):
     list_display = ('foldername', 'admin_thumb', 'title', 'date_added', 'photo_count', 'is_public')
-    list_filter = ['parent', 'date_added', 'is_public']
+    list_filter = ['date_added', 'is_public', 'parent']
     search_fields = ['title', 'description', 'foldername']
     date_hierarchy = 'date_added'
     prepopulated_fields = {'slug': ('foldername',)}
+    actions = [publishFolderContents, unpublishFolderContents]
 
 class AutoCollectionAdmin(admin.ModelAdmin):
     list_display = ('title', 'admin_thumb', 'date_added', 'is_public')
@@ -67,6 +102,7 @@ class PhotoAdmin(admin.ModelAdmin):
     #filter_horizontal = ('public_galleries',)
 
 admin.site.add_action(deleteme)
+admin.site.add_action(make_shared)
 admin.site.add_action(make_public)
 admin.site.add_action(make_private)
 admin.site.add_action(resave)

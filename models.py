@@ -439,10 +439,15 @@ class AutoCollection(Gallery):
             self._manager = manager
             self._numfield = numfield
         def get_query_set(self, user=None):
+            from django.core.exceptions import FieldError
             queryfield = self._parent.queryfield
-            if queryfield == 'date_taken' and (queryfield not in self._manager.model._meta.get_all_field_names()):
-                queryfield = 'date_beginning'
-            return self._parent._getquery(self._manager.get_query_set(), queryfield, user=user, number=getattr(self._parent, self._numfield))
+            try:
+                return self._parent._getquery(self._manager.get_query_set(), queryfield, user=user, number=getattr(self._parent, self._numfield))
+            except FieldError, f:
+                if queryfield == 'date_taken':
+                    return self._parent._getquery(self._manager.get_query_set(), 'date_beginning', user=user, number=getattr(self._parent, self._numfield))
+                raise f
+
         def getRestricted(self, user, **filt):
             return self.get_query_set(user=user).filter(**filt)
         def __getattr__(self, name):
@@ -474,13 +479,13 @@ class AutoCollection(Gallery):
         filtme={}; filtme[ranger]=cutoff
         return q.filter(**filtme)
 
-    def getCollection(self, user):
-        if self.includeGalleries:
-            c = self.__getquery(Folder.objects.all(), number=self.number, user=user)
-        else:
-            c = Folder.objects.none()
-        p = self.__getquery(Photo.objects.all(), number = self.galleryNumber, user=user)
-        return c,p
+    #def getCollection(self, user):
+    #    if self.includeGalleries:
+    #        c = self.__getquery(Folder.objects.all(), number=self.number, user=user)
+    #    else:
+    #        c = Folder.objects.none()
+    #    p = self.__getquery(Photo.objects.all(), number = self.galleryNumber, user=user)
+    #    return c,p
 
     @property
     def order_by(self):

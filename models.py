@@ -439,7 +439,10 @@ class AutoCollection(Gallery):
             self._manager = manager
             self._numfield = numfield
         def get_query_set(self, user=None):
-            return self._parent._getquery(self._manager.get_query_set(), user=user, number=getattr(self._parent, self._numfield))
+            queryfield = self._parent.queryfield
+            if queryfield == 'date_taken' and not queryfield in self._manager.model._meta.get_all_field_names():
+                queryfield = 'date_beginning'
+            return self._parent._getquery(self._manager.get_query_set(), queryfield, user=user, number=getattr(self._parent, self._numfield))
         def getRestricted(self, user, **filt):
             return self.get_query_set(user=user).filter(**filt)
         def __getattr__(self, name):
@@ -458,16 +461,16 @@ class AutoCollection(Gallery):
             return self._folder_children
         return Folder.objects.none()
 
-    def _getquery(self, query, user=None, number=0, **filt):
-        if str(self.queryfield)=='date_taken': filt['date_taken__lt']=F('date_beginning') # Ignores objects with invalid date_taken EXIF
+    def _getquery(self, query, queryfield, user=None, number=0, **filt):
+        if str(queryfield)=='date_taken': filt['date_taken__lt']=F('date_beginning') # Ignores objects with invalid date_taken EXIF
 
         q = query.getRestricted(user, **filt).order_by(self.order_by)
 
         if number == 0: n = q.count()-1
         else: n = min(number+1, q.count())-1
-        cutoff = getattr(q[n], self.queryfield)
-        if self.ordering == '': ranger = str(self.queryfield) + '__lt'
-        else: ranger = str(self.queryfield) + '__gt'
+        cutoff = getattr(q[n], queryfield)
+        if self.ordering == '': ranger = str(queryfield) + '__lt'
+        else: ranger = str(queryfield) + '__gt'
         filtme={}; filtme[ranger]=cutoff
         return q.filter(**filtme)
 

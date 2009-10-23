@@ -74,7 +74,8 @@ def walkFolders(localdir, parent):
     if not os.path.isdir(parentcache):
         if not os.path.isdir(parentabsdir):
             os.makedirs(parentabsdir)
-        os.symlink(cachedir, parentcache)
+        if not os.path.exists(parentcache):
+            os.symlink(cachedir, parentcache)
 
     ls = os.listdir(localdir)
     ls.sort()

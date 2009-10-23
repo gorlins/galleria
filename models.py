@@ -19,9 +19,12 @@ import subprocess
 import operator
 from django.db.models import F, Q
 
+MEDIA_ROOT = settings.MEDIA_ROOT
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 SAMPLE_SIZE = getattr(settings, 'GALLERY_SAMPLE_SIZE', 3)
 PRIVATE_IPS = getattr(settings, 'GALLERIA_PRIVATE_IPS', ['none'])
+
+ows = OverwritingStorage(location=MEDIA_ROOT)
 
 # Utilities
 def uploadFolder(photo, filename):
@@ -68,7 +71,7 @@ class Photo(ImageModel):
     title = models.CharField(max_length=100)
     slug = models.SlugField(_('title slug'), max_length=60, help_text=_('A "slug" is a URL-friendly title for an object.'))
     caption = models.CharField(_('caption'), max_length=60, blank=True, default='')
-    image = models.ImageField(upload_to=uploadFolder, storage=OverwritingStorage)
+    image = models.ImageField(upload_to=uploadFolder, storage=ows)
     num_views = models.PositiveIntegerField(editable=False, default=0)
     date_added = models.DateTimeField(_('date published'), default=datetime.now)
     date_taken = models.DateTimeField(_('date taken'), default=datetime.now)

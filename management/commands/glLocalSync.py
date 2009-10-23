@@ -151,8 +151,10 @@ def walkFolders(localdir, parent):
                 if not setPublic is None:
                     kwds['is_public'] = setPublic
                 #try:
+                print thisf
                 photo = Photo.create(thisf, **kwds)
                 print '+', photo.folderpath(), ':', photo.title
+
                 added+=1
                 #except Exception:
                 #    print 'Error with ' + f

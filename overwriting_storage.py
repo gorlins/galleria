@@ -8,3 +8,5 @@ class OverwritingStorage(FileSystemStorage):
             os.remove(full_path)
         FileSystemStorage._save(self, name, content)
 
+    def get_available_name(self, name):
+        return name

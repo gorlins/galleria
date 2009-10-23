@@ -6,7 +6,7 @@ class OverwritingStorage(FileSystemStorage):
         full_path = self.path(name)
         if os.path.exists(full_path):
             os.remove(full_path)
-        FileSystemStorage._save(self, name, content)
+        return FileSystemStorage._save(self, name, content)
 
     def get_available_name(self, name):
         return name

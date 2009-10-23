@@ -142,7 +142,10 @@ def walkFolders(localdir, parent):
                 (name, ext) = os.path.splitext(f)
                 if name[-1] == '_':
                     print '!?', 'Found bogus file ' + f
-                    os.remove(thisf)
+                    try:
+                        os.remove(thisf)
+                    except OSError:
+                        pass
                     continue
                 try:
                     if parent.mustsave:

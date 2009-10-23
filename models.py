@@ -10,7 +10,7 @@ from datetime import datetime
 import os
 import random
 from utils import EXIF
-from galleria.symlinkstorage import SymlinkStorage
+#from galleria.symlinkstorage import SymlinkStorage
 from galleria.specs import Preprocess
 from django.core.files.base import ContentFile, File
 from StringIO import StringIO

@@ -32,6 +32,8 @@ PRECACHE_NEW = getattr(settings, 'GALLERIA_PRECACHE_NEW', False)
 CACHE_SUBDIR='.glcache'
 GALLERIA_ROOT = getattr(settings, 'GALLERIA_ROOT', 'galleria')
 
+SYMLINK = getattr(settings, 'GALLERIA_SYMLINK', True)
+
 skipped = 0
 added = 0
 excluded=0
@@ -133,7 +135,7 @@ def walkFolders(localdir, parent):
                 except AttributeError:
                     pass
 
-                photo = Photo.create(thisf, uploadName=f, title=f, parent=parent, slug=slug, preCache=PRECACHE_NEW)
+                photo = Photo.create(thisf, uploadName=f, title=f, parent=parent, symlink=SYMLINK, slug=slug, preCache=PRECACHE_NEW)
                 print '+', photo.folderpath(), ':', photo.title
                 added+=1
             valid=True

@@ -150,14 +150,14 @@ def walkFolders(localdir, parent):
                 kwds = dict(uploadName=f, title=f, parent=parent, symlink=SYMLINK, slug=slug, preCache=PRECACHE_NEW)
                 if not setPublic is None:
                     kwds['is_public'] = setPublic
-                #try:
-                print thisf
-                photo = Photo.create(thisf, **kwds)
-                print '+', photo.folderpath(), ':', photo.title
+                try:
+                    print thisf
+                    photo = Photo.create(thisf, **kwds)
+                    print '+', photo.folderpath(), ':', photo.title
 
-                added+=1
-                #except Exception:
-                #    print 'Error with ' + f
+                    added+=1
+                except Exception, e:
+                    print 'Error with ' + thisf, e
             valid=True
             foundPhotos.append(slug)
 

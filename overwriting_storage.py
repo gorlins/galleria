@@ -1,6 +1,7 @@
 import os
 
 from django.conf import settings
+from django.core.files import locks, File
 from django.core.files.storage import FileSystemStorage
 
 class OverwritingStorage(FileSystemStorage):

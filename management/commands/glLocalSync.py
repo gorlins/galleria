@@ -124,7 +124,7 @@ def walkFolders(localdir, parent):
                     raise Exception()
                 found += 1
                 ps = os.stat(thisf)
-                ds = os.stat(photo.display.image.path)
+                ds = os.stat(photo.display.image.fp.name)
                 if ps.st_mtime > ds.st_mtime:
                     print '~', photo.folderpath(), ':', photo.title
                     modified+=1

@@ -118,6 +118,10 @@ def walkFolders(localdir, parent):
                 continue
             try:
                 photo = childPhotos.get(slug=slug)
+                (ppath, pbase) = os.split(photo.image.file.name)
+                if not f == pbase: # Some file modification, eg ss.jpg -> ss_.jpg
+                    print f
+                    raise Exception()
                 found += 1
                 ps = os.stat(thisf)
                 ds = os.stat(photo.display.image.fp.name)

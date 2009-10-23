@@ -93,7 +93,7 @@ class AutoCollectionAdmin(admin.ModelAdmin):
 
 class PhotoAdmin(admin.ModelAdmin):
     #list_display = ('title', 'date_taken', 'date_added', 'is_public', 'tags', 'view_count', 'admin_thumbnail')
-    list_display = ('admin_thumb', 'title', 'image', 'is_public', 'parent')
+    list_display = ('admin_thumb', 'title', 'image', 'is_public', 'num_views', 'parent')
     list_filter = ['date_added', 'date_taken', 'is_public', 'parent']
     search_fields = ['title', 'caption']
     list_per_page = 10

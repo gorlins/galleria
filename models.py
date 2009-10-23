@@ -11,6 +11,7 @@ import os
 import random
 from utils import EXIF
 #from galleria.symlinkstorage import SymlinkStorage
+from galleria.overwriting_storage import OverwritingStorage
 from galleria.specs import Preprocess
 from django.core.files.base import ContentFile, File
 from StringIO import StringIO
@@ -67,7 +68,7 @@ class Photo(ImageModel):
     title = models.CharField(max_length=100)
     slug = models.SlugField(_('title slug'), max_length=60, help_text=_('A "slug" is a URL-friendly title for an object.'))
     caption = models.CharField(_('caption'), max_length=60, blank=True, default='')
-    image = models.ImageField(upload_to=uploadFolder)
+    image = models.ImageField(upload_to=uploadFolder, storage=OverwritingStorage)
     num_views = models.PositiveIntegerField(editable=False, default=0)
     date_added = models.DateTimeField(_('date published'), default=datetime.now)
     date_taken = models.DateTimeField(_('date taken'), default=datetime.now)

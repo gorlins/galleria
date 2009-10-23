@@ -126,14 +126,17 @@ def walkFolders(localdir, parent):
                     photo.delete()
                     raise Photo.DoesNotExist()
                 found += 1
-                ps = os.stat(thisf)
-                ds = os.stat(photo.display.image.fp.name)
-                if ps.st_mtime > ds.st_mtime:
-                    print '~', photo.folderpath(), ':', photo.title
-                    modified+=1
-                    if not os.path.islink(thisf):
-                        photo.image.save(photo.title, ContentFile(open(thisf).read()), save=False)
-                    photo.save(clear_cache=True)
+                try:
+                    ps = os.stat(thisf)
+                    ds = os.stat(photo.display.image.fp.name)
+                    if ps.st_mtime > ds.st_mtime:
+                        print '~', photo.folderpath(), ':', photo.title
+                        modified+=1
+                        if not os.path.islink(thisf):
+                            photo.image.save(photo.title, ContentFile(open(thisf).read()), save=False)
+                        photo.save(clear_cache=True)
+                except Exception, e:
+                    print 'Problem updating ' + thisf, e
 
             except Photo.DoesNotExist:
                 (name, ext) = os.path.splitext(f)

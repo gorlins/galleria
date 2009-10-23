@@ -136,6 +136,11 @@ def walkFolders(localdir, parent):
                     photo.save(clear_cache=True)
 
             except Photo.DoesNotExist:
+                (name, ext) = os.path.splitext(f)
+                if name[-1] == '_':
+                    print '!?', 'Found bogus file ' + f
+                    os.remove(thisf)
+                    continue
                 try:
                     if parent.mustsave:
                         parent.save()

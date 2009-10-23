@@ -113,6 +113,7 @@ def walkFolders(localdir, parent):
                 
         else:
             (im, ext) = os.path.splitext(f)
+            setPublic = None
             if not ext.lower() in VALID_FILES:
                 skipped += 1
                 continue
@@ -120,8 +121,10 @@ def walkFolders(localdir, parent):
                 photo = childPhotos.get(slug=slug)
                 (ppath, pbase) = os.path.split(photo.image.path)
                 if not f == pbase: # Some file modification, eg ss.jpg -> ss_.jpg
-                    print f
-                    raise Exception()
+                    print '!!', f, pbase
+                    setPublic = photo.is_public
+                    photo.delete()
+                    raise Photo.DoesNotExist()
                 found += 1
                 ps = os.stat(thisf)
                 ds = os.stat(photo.display.image.fp.name)
@@ -139,8 +142,10 @@ def walkFolders(localdir, parent):
                         parent.mustsave=False # Prevents unnecessary saving
                 except AttributeError:
                     pass
-
-                photo = Photo.create(thisf, uploadName=f, title=f, parent=parent, symlink=SYMLINK, slug=slug, preCache=PRECACHE_NEW)
+                kwds = dict(uploadName=f, title=f, parent=parent, symlink=SYMLINK, slug=slug, preCache=PRECACHE_NEW)
+                if not setPublic is None:
+                    kwds['is_public'] = setPublic
+                photo = Photo.create(thisf, **kwds)
                 print '+', photo.folderpath(), ':', photo.title
                 added+=1
             valid=True
